@@ -13,8 +13,11 @@ export const dataSourceOptions: DataSourceOptions = {
   database: process.env.DB_DATABASE || 'sombriya',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
-  synchronize: false, // Never use TRUE in production!
+  synchronize: true, // Never use TRUE in production!
   logging: true,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 };
 
 const dataSource = new DataSource(dataSourceOptions);
