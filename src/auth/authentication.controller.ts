@@ -31,7 +31,13 @@ export class AuthController {
 
   @Post('register')
   async register(
-    @Body() body: { email: string; name: string; password: string },
+    @Body()
+    body: {
+      biometric_enabled: boolean;
+      email: string;
+      name: string;
+      password: string;
+    },
   ) {
     const user = await this.authService.registerUser(
       body.email,
