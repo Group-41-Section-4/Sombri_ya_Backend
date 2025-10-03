@@ -21,6 +21,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  password?: string;
+
   @Column({ type: 'boolean', default: false })
   biometric_enabled: boolean;
 
