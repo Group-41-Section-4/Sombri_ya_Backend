@@ -41,13 +41,11 @@ The recommended way to run the application is using Docker Compose.
 
     This command will build the NestJS application image and start both the `backend` and `postgres` containers.
 
-2.  **Running Migrations:**
+2.  **Database Setup:**
 
-    Once the containers are running, open a new terminal and execute the following command to run the database migrations. This will create all the necessary tables.
+    The application uses TypeORM with **automatic schema synchronization**. Database tables are automatically created and updated from your entities - no manual migrations needed!
 
-    ```bash
-    docker-compose exec backend npm run migration:run
-    ```
+    Just start the application and the database schema will be automatically synced.
 
 3.  **Seeding the Database:**
 
