@@ -4,6 +4,7 @@ import { AuthService } from './authentication.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { PasswordStrategy } from './strategies/password.strategy';
 import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
+import * as bcrypt from 'bcrypt';
 
 @Controller('auth')
 export class AuthController {
@@ -46,5 +47,21 @@ export class AuthController {
       body.biometric_enabled ?? false,
     );
     return { message: 'Usuario registrado', user };
+  }
+  @Post('debug-password')
+  async debugPassword(@Body() body: { email: string; password: string }) {
+    const user = await this.authService.findUserByEmail(body.email);
+
+    if (!user) {
+      return { ok: false, reason: 'Usuario no encontrado' };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const match = await bcrypt.compare(body.password, user.password ?? '');
+    return {
+      ok: match,
+      inputPassword: body.password,
+      storedHash: user.password,
+    };
   }
 }
