@@ -28,8 +28,17 @@ export class GoogleAuthAdapter {
         this.http.get<GooglePayload>(`${this.googleUrl}?id_token=${idToken}`),
       );
 
+      const allowedClients = [
+        process.env.GOOGLE_CLIENT_KOTLIN,
+        process.env.GOOGLE_CLIENT_FLUTTER,
+      ];
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const payload: GooglePayload = response.data;
+
+      if (!allowedClients.includes(payload.aud)) {
+        throw new HttpException('Token inválido', 401);
+      }
 
       if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
         throw new HttpException('Token inválido', 401);
