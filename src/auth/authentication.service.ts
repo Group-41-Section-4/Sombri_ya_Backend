@@ -26,14 +26,19 @@ export class AuthService {
     return this.userRepo.findOne({ where: { email } });
   }
 
-  async registerUser(email: string, name: string, password: string) {
+  async registerUser(
+    email: string,
+    name: string,
+    password: string,
+    biometric_enabled: boolean,
+  ) {
     const hashedPassword: string = await bcrypt.hash(password, 10);
 
     const user = this.userRepo.create({
       email,
       name,
       password: hashedPassword,
-      biometric_enabled: false,
+      biometric_enabled,
     });
 
     return this.userRepo.save(user);
