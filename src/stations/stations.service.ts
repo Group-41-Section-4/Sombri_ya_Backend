@@ -6,6 +6,7 @@ import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
 import { Umbrella } from '../database/entities/umbrella.entity';
 import { UmbrellaState } from '../database/entities/umbrella.entity';
+import { StationResponseDto } from './dto/station-response.dto';
 
 @Injectable()
 export class StationsService {
@@ -27,7 +28,7 @@ export class StationsService {
     return this.stationRepository.save(station);
   }
 
-  async findNearby(query: QueryStationDto) {
+  async findNearby(query: QueryStationDto): Promise<StationResponseDto[]> {
     const { lat, lon, radius_m = 1000, page = 1 } = query;
     const radiusInMeters = Number(radius_m);
     const pageNumber = Number(page);
@@ -35,43 +36,51 @@ export class StationsService {
 
     const userLocation = `ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography`;
 
-    const stations = await this.stationRepository
+    const stationsRaw = await this.stationRepository
       .createQueryBuilder('station')
       .select([
-        'station.id',
-        'station.place_name',
-        'station.description',
-        'station.latitude',
-        'station.longitude',
-        `ST_Distance(station.location, ${userLocation}) AS distance_meters`,
+        'station.id AS id',
+        'station.place_name AS "placeName"',
+        'station.description AS description',
+        'station.latitude AS latitude',
+        'station.longitude AS longitude',
+        `ST_Distance(station.location, ${userLocation}) AS "distanceMeters"`,
       ])
       .addSelect(
         (subQuery) =>
           subQuery
             .select('COUNT(*)')
             .from(Umbrella, 'u')
-            .where(`u.station_id = station.id AND u.state = :state`, { state: UmbrellaState.AVAILABLE }),
-        'available_umbrellas',
+            .where(`u.station_id = station.id AND u.state = :state`, {
+              state: UmbrellaState.AVAILABLE,
+            }),
+        'availableUmbrellas',
       )
-       .addSelect(
+      .addSelect(
         (subQuery) =>
           subQuery
             .select('COUNT(*)')
             .from(Umbrella, 'u')
             .where(`u.station_id = station.id`),
-        'total_umbrellas',
+        'totalUmbrellas',
       )
       .where(`ST_DWithin(station.location, ${userLocation}, :radius)`)
-      .orderBy('distance_meters', 'ASC')
+      .orderBy('"distanceMeters"', 'ASC')
       .setParameter('radius', radiusInMeters)
       .offset((pageNumber - 1) * pageSize)
       .limit(pageSize)
       .getRawMany();
 
-    return stations;
+    return stationsRaw.map((station) => ({
+      ...station,
+      distanceMeters: Math.round(station.distanceMeters),
+      availableUmbrellas: parseInt(station.availableUmbrellas, 10),
+      totalUmbrellas: parseInt(station.totalUmbrellas, 10),
+    }));
   }
 
   async findUmbrellas(id: string): Promise<Umbrella[]> {
+    // ... (sin cambios aquí)
     return this.umbrellaRepository.find({ where: { station_id: id } });
   }
 }
