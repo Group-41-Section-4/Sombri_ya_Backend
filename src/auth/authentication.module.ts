@@ -10,9 +10,6 @@ import { JwtStrategy } from './strategies/jwt-auth.guard';
 import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
 
 @Module({
-
-  controllers: [AuthController],
-  providers: [AuthService, GoogleAuthAdapter], 
   exports: [AuthService],
   imports: [
     TypeOrmModule.forFeature([User]),
@@ -21,7 +18,7 @@ import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  providers: [AuthService, GoogleStrategy, PasswordStrategy, JwtStrategy],
+  providers: [AuthService, GoogleStrategy, PasswordStrategy, JwtStrategy, GoogleAuthAdapter],
   controllers: [AuthController],
 })
 export class AuthModule {}
