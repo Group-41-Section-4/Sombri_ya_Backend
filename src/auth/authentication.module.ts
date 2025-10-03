@@ -7,8 +7,13 @@ import { User } from '../database/entities/user.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { PasswordStrategy } from './strategies/password.strategy';
 import { JwtStrategy } from './strategies/jwt-auth.guard';
+import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
 
 @Module({
+
+  controllers: [AuthController],
+  providers: [AuthService, GoogleAuthAdapter], 
+  exports: [AuthService],
   imports: [
     TypeOrmModule.forFeature([User]),
     JwtModule.register({
