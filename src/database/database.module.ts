@@ -7,7 +7,7 @@ import { dataSourceOptions } from './data-source';
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: () => (dataSourceOptions),
+      useFactory: () => dataSourceOptions,
       inject: [ConfigService],
     }),
   ],
