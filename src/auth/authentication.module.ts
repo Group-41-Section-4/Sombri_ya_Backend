@@ -17,7 +17,8 @@ import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1d' },
-    }),
+    }), 
+    HttpModule,
   ],
   providers: [AuthService, GoogleStrategy, PasswordStrategy, JwtStrategy, GoogleAuthAdapter],
   controllers: [AuthController],
