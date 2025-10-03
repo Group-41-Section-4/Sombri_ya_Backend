@@ -33,6 +33,7 @@ export class AuthService {
       email,
       name,
       password: hashedPassword,
+      biometric_enabled: false,
     });
 
     return this.userRepo.save(user);

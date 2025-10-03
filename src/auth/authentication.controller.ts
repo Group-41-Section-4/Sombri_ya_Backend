@@ -37,6 +37,7 @@ export class AuthController {
       body.email,
       body.name,
       body.password,
+      body.biometric_enabled ?? false,
     );
     return { message: 'Usuario registrado', user };
   }
