@@ -43,9 +43,9 @@ export class GoogleAuthAdapter {
           401,
         );
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.log('🔍 Payload recibido de Google:', response.data);
-      console.log('🎯 Allowed clients:', allowedClients);
+      console.log('🟦 PAYLOAD GOOGLE:', response.data);
+      console.log('🟨 ALLOWED CLIENTS:', allowedClients);
+
 
       return {
         email: payload.email,
