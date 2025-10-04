@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Station } from '../database/entities/station.entity';
 import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
-import { Umbrella } from '../database/entities/umbrella.entity';
-import { UmbrellaState } from '../database/entities/umbrella.entity';
+import { Umbrella, UmbrellaState } from '../database/entities/umbrella.entity';
 import { StationResponseDto } from './dto/station-response.dto';
+import { AddUmbrellaDto } from '../umbrellas/dto/add-umbrella.dto';
 
 @Injectable()
 export class StationsService {
@@ -93,7 +93,29 @@ export class StationsService {
   }
 
   async findUmbrellas(id: string): Promise<Umbrella[]> {
-    // ... (sin cambios aquí)
-    return this.umbrellaRepository.find({ where: { station_id: id } });
+    return this.umbrellaRepository.find({ where: { station: { id } } });
+  }
+
+  async addUmbrellas(
+    stationId: string,
+    addUmbrellaDto: AddUmbrellaDto,
+  ): Promise<Umbrella> {
+    // Verificar que la estación existe
+    const station = await this.stationRepository.findOne({
+      where: { id: stationId },
+    });
+
+    if (!station) {
+      throw new NotFoundException(`Station with ID ${stationId} not found`);
+    }
+
+    // Crear nueva sombrilla
+    const umbrella = this.umbrellaRepository.create({
+      station,
+      last_maintenance_at: addUmbrellaDto.last_maintenance_at,
+      state: UmbrellaState.AVAILABLE, // Por defecto disponible
+    });
+
+    return this.umbrellaRepository.save(umbrella);
   }
 }

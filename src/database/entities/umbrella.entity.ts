@@ -19,10 +19,11 @@ export class Umbrella {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'uuid' })
-  station_id: string;
-
-  @Column({ type: 'enum', enum: UmbrellaState, default: UmbrellaState.AVAILABLE })
+  @Column({
+    type: 'enum',
+    enum: UmbrellaState,
+    default: UmbrellaState.AVAILABLE,
+  })
   state: UmbrellaState;
 
   @CreateDateColumn({ type: 'timestamptz' })

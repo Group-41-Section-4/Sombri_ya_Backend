@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { StationsService } from './stations.service';
 import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
+import { AddUmbrellaDto } from '../umbrellas/dto/add-umbrella.dto';
 
 @Controller('stations')
 export class StationsController {
@@ -20,5 +21,13 @@ export class StationsController {
   @Get(':id/umbrellas')
   findUmbrellas(@Param('id') id: string) {
     return this.stationsService.findUmbrellas(id);
+  }
+
+  @Post(':id/umbrellas')
+  addUmbrellas(
+    @Param('id') id: string,
+    @Body() addUmbrellaDto: AddUmbrellaDto,
+  ) {
+    return this.stationsService.addUmbrellas(id, addUmbrellaDto);
   }
 }

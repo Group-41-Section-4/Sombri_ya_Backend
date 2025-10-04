@@ -12,7 +12,6 @@ export const dataSourceOptions: DataSourceOptions = {
   password: process.env.DB_PASSWORD || 'admin',
   database: process.env.DB_DATABASE || 'sombriya',
   entities: [__dirname + '/entities/*.entity{.ts,.js}'],
-  // ✅ Always auto-sync entities - no migrations needed!
   synchronize: true,
   logging: true,
   ssl: {

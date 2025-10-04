@@ -5,6 +5,7 @@ import { Rental, RentalStatus } from '../database/entities/rental.entity';
 import { Umbrella, UmbrellaState } from '../database/entities/umbrella.entity';
 import { StartRentalDto } from './dto/start-rental.dto';
 import { EndRentalDto } from './dto/end-rental.dto';
+import { Station } from 'src/database/entities/station.entity';
 
 @Injectable()
 export class RentalsService {
@@ -19,7 +20,9 @@ export class RentalsService {
   async start(startRentalDto: StartRentalDto): Promise<Rental> {
     const { umbrella_id } = startRentalDto;
 
-    const umbrella = await this.umbrellaRepository.findOneBy({ id: umbrella_id });
+    const umbrella = await this.umbrellaRepository.findOneBy({
+      id: umbrella_id,
+    });
     if (!umbrella || umbrella.state !== UmbrellaState.AVAILABLE) {
       throw new NotFoundException('Umbrella not available for rental.');
     }
@@ -56,16 +59,25 @@ export class RentalsService {
       if (station_end_id) {
         rental.station_end_id = station_end_id;
       }
-      rental.duration_minutes = Math.round((rental.end_time.getTime() - rental.start_time.getTime()) / 60000);
+      rental.duration_minutes = Math.round(
+        (rental.end_time.getTime() - rental.start_time.getTime()) / 60000,
+      );
       await manager.save(rental);
 
       // Update umbrella
-      const umbrella = await manager.findOneBy(Umbrella, { id: rental.umbrella_id });
+      const umbrella = await manager.findOneBy(Umbrella, {
+        id: rental.umbrella_id,
+      });
       if (umbrella) {
         umbrella.state = UmbrellaState.AVAILABLE;
         // If an end station is provided, update the umbrella's location
         if (station_end_id) {
-          umbrella.station_id = station_end_id;
+          const station = await manager.findOneBy(Station, {
+            id: station_end_id,
+          });
+          if (station) {
+            umbrella.station = station;
+          }
         }
         await manager.save(umbrella);
       }

@@ -13,8 +13,7 @@ import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { FeatureLogModule } from './feature-log/feature-log.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { WeatherModule } from './weather/weather.module';
-import { SeedsModule } from './database/seeds/seeds.module';
-import {AuthModule} from './auth/authentication.module';
+import { AuthModule } from './auth/authentication.module';
 
 @Module({
   imports: [
@@ -32,7 +31,6 @@ import {AuthModule} from './auth/authentication.module';
     FeatureLogModule,
     AnalyticsModule,
     WeatherModule,
-    SeedsModule,
     AuthModule,
   ],
   controllers: [AppController],
