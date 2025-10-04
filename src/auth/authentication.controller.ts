@@ -1,10 +1,18 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './authentication.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { PasswordStrategy } from './strategies/password.strategy';
 import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
 import * as bcrypt from 'bcrypt';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -63,5 +71,12 @@ export class AuthController {
       inputPassword: body.password,
       storedHash: user.password,
     };
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  getProfile(@Request() req: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+    return req.user; // aquí el JWT guard mete el user.id, email, name, etc.
   }
 }
