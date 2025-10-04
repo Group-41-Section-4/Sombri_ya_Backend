@@ -19,6 +19,11 @@ export class StationsController {
     return this.stationsService.findNearby(queryStationDto);
   }
 
+  @Post()
+  findNearbyPost(@Body() queryStationDto: QueryStationDto) {
+    return this.stationsService.findNearby(queryStationDto);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.stationsService.findOne(id);
