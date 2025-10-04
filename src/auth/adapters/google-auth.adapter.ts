@@ -36,6 +36,9 @@ export class GoogleAuthAdapter {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const payload: GooglePayload = response.data;
+      console.log('🟢 ID TOKEN recibido en el adapter:', idToken);
+      console.log('🟦 PAYLOAD GOOGLE:', response.data);
+      console.log('🟨 ALLOWED CLIENTS:', allowedClients);
 
       if (!allowedClients.includes(payload.aud)) {
         throw new HttpException(
@@ -43,9 +46,6 @@ export class GoogleAuthAdapter {
           401,
         );
       }
-      console.log('🟦 PAYLOAD GOOGLE:', response.data);
-      console.log('🟨 ALLOWED CLIENTS:', allowedClients);
-
 
       return {
         email: payload.email,
