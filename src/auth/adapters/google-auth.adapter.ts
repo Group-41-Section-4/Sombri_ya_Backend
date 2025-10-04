@@ -23,6 +23,7 @@ export class GoogleAuthAdapter {
 
   async verifyToken(idToken: string): Promise<AuthenticatedUser> {
     try {
+      console.log('🟢 ID TOKEN recibido en el adapter:', idToken);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const response = await firstValueFrom(
         this.http.get<GooglePayload>(`${this.googleUrl}?id_token=${idToken}`),
@@ -36,9 +37,6 @@ export class GoogleAuthAdapter {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const payload: GooglePayload = response.data;
-      console.log('🟢 ID TOKEN recibido en el adapter:', idToken);
-      console.log('🟦 PAYLOAD GOOGLE:', response.data);
-      console.log('🟨 ALLOWED CLIENTS:', allowedClients);
 
       if (!allowedClients.includes(payload.aud)) {
         throw new HttpException(
