@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { StationsService } from './stations.service';
 import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
@@ -13,8 +13,8 @@ export class StationsController {
   }
 
   @Get()
-  findNearby(@Query() query: QueryStationDto) {
-    return this.stationsService.findNearby(query);
+  findNearby(@Body() queryStationDto: QueryStationDto) {
+    return this.stationsService.findNearby(queryStationDto);
   }
 
   @Get(':id/umbrellas')

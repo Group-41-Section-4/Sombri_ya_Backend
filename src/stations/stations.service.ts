@@ -29,14 +29,25 @@ export class StationsService {
   }
 
   async findNearby(query: QueryStationDto): Promise<StationResponseDto[]> {
-    const { lat, lon, radius_m = 1000, page = 1 } = query;
+    const { latitude, longitude, radius_m = 1000, page = 1 } = query;
     const radiusInMeters = Number(radius_m);
     const pageNumber = Number(page);
     const pageSize = 10;
 
-    const userLocation = `ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)::geography`;
+    const userLocation = `ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography`;
 
-    const stationsRaw = await this.stationRepository
+    type StationRaw = {
+      id: string;
+      placeName: string;
+      description: string;
+      latitude: number;
+      longitude: number;
+      distanceMeters: number | string;
+      availableUmbrellas: number | string;
+      totalUmbrellas: number | string;
+    };
+
+    const stationsRaw: StationRaw[] = await this.stationRepository
       .createQueryBuilder('station')
       .select([
         'station.id AS id',
@@ -71,12 +82,14 @@ export class StationsService {
       .limit(pageSize)
       .getRawMany();
 
-    return stationsRaw.map((station) => ({
-      ...station,
-      distanceMeters: Math.round(station.distanceMeters),
-      availableUmbrellas: parseInt(station.availableUmbrellas, 10),
-      totalUmbrellas: parseInt(station.totalUmbrellas, 10),
-    }));
+    return stationsRaw.map(
+      (station: StationRaw): StationResponseDto => ({
+        ...station,
+        distanceMeters: Math.round(Number(station.distanceMeters)),
+        availableUmbrellas: parseInt(String(station.availableUmbrellas), 10),
+        totalUmbrellas: parseInt(String(station.totalUmbrellas), 10),
+      }),
+    );
   }
 
   async findUmbrellas(id: string): Promise<Umbrella[]> {

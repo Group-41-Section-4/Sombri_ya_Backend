@@ -1,19 +1,25 @@
-import { IsNotEmpty, IsNumberString, IsOptional } from 'class-validator';
+import {
+  IsLatitude,
+  IsLongitude,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+} from 'class-validator';
 
 export class QueryStationDto {
   @IsNotEmpty()
-  @IsNumberString()
-  lat: string;
+  @IsLatitude()
+  latitude: number;
 
   @IsNotEmpty()
-  @IsNumberString()
-  lon: string;
+  @IsLongitude()
+  longitude: number;
 
   @IsOptional()
-  @IsNumberString()
-  radius_m?: string;
+  @IsNumber()
+  radius_m?: number = 100;
 
   @IsOptional()
-  @IsNumberString()
-  page?: string;
+  @IsNumber()
+  page?: number = 1;
 }

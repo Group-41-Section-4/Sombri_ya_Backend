@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsLatitude, IsLongitude } from 'class-validator';
+import { IsNotEmpty, IsString, IsLatitude, IsLongitude } from 'class-validator';
 
 export class CreateStationDto {
   @IsNotEmpty()
