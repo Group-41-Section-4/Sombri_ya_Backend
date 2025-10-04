@@ -1,19 +1,5 @@
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsObject,
-  IsOptional,
-  IsUUID,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 import { AuthType } from '../../database/entities/rental.entity';
-
-class GpsCoordDto {
-  @IsNotEmpty()
-  lat: number;
-
-  @IsNotEmpty()
-  lon: number;
-}
 
 export class StartRentalDto {
   @IsNotEmpty()
@@ -27,10 +13,6 @@ export class StartRentalDto {
   @IsOptional()
   @IsUUID()
   payment_method_id?: string;
-
-  @IsNotEmpty()
-  @IsObject()
-  start_gps: GpsCoordDto;
 
   @IsNotEmpty()
   @IsEnum(AuthType)

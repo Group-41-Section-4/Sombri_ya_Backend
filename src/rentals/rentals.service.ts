@@ -42,6 +42,12 @@ export class RentalsService {
       throw new NotFoundException('No available umbrellas at this station');
     }
 
+    // Verificar que el usuario no tenga una renta activa
+    const activeRental = await this.findActiveRental(user_id);
+    if (activeRental) {
+      throw new NotFoundException('User already has an active rental');
+    }
+
     // Obtener entidades relacionadas
     const user = await this.userRepository.findOneBy({ id: user_id });
     if (!user) {
@@ -82,15 +88,13 @@ export class RentalsService {
 
   @Transactional()
   async end(endRentalDto: EndRentalDto): Promise<Rental> {
-    const { rental_id, station_end_id } = endRentalDto;
+    const { user_id, station_end_id } = endRentalDto;
 
-    const rental = await this.rentalRepository.findOne({
-      where: { id: rental_id },
-      relations: ['umbrella'],
-    });
+    // Buscar la renta activa del usuario
+    const rental = await this.findActiveRental(user_id);
 
-    if (!rental || rental.status !== RentalStatus.ONGOING) {
-      throw new NotFoundException('Rental not found or already completed.');
+    if (!rental) {
+      throw new NotFoundException('No active rental found for this user.');
     }
 
     // Update rental
@@ -120,6 +124,16 @@ export class RentalsService {
   async find(user_id: string, status: RentalStatus): Promise<Rental[]> {
     return this.rentalRepository.find({
       where: { user: { id: user_id }, status },
+    });
+  }
+
+  async findActiveRental(user_id: string): Promise<Rental | null> {
+    return this.rentalRepository.findOne({
+      where: {
+        user: { id: user_id },
+        status: RentalStatus.ONGOING,
+      },
+      relations: ['umbrella', 'start_station'],
     });
   }
 

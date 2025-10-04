@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Station } from '../database/entities/station.entity';
+import { StationTag } from '../database/entities/station-tag.entity';
 import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
+import { CreateStationTagDto } from './dto/create-station-tag.dto';
 import { Umbrella, UmbrellaState } from '../database/entities/umbrella.entity';
 import { StationResponseDto } from './dto/station-response.dto';
 import { AddUmbrellaDto } from '../umbrellas/dto/add-umbrella.dto';
@@ -15,6 +21,8 @@ export class StationsService {
     private readonly stationRepository: Repository<Station>,
     @InjectRepository(Umbrella)
     private readonly umbrellaRepository: Repository<Umbrella>,
+    @InjectRepository(StationTag)
+    private readonly stationTagRepository: Repository<StationTag>,
   ) {}
 
   async create(createStationDto: CreateStationDto): Promise<Station> {
@@ -92,6 +100,14 @@ export class StationsService {
     );
   }
 
+  async findOne(id: string): Promise<Station> {
+    const station = await this.stationRepository.findOneBy({ id });
+    if (!station) {
+      throw new NotFoundException(`Station with ID "${id}" not found`);
+    }
+    return station;
+  }
+
   async findUmbrellas(id: string): Promise<Umbrella[]> {
     return this.umbrellaRepository.find({ where: { station: { id } } });
   }
@@ -117,5 +133,38 @@ export class StationsService {
     });
 
     return this.umbrellaRepository.save(umbrella);
+  }
+
+  async registerNFCTag(
+    stationId: string,
+    createStationTagDto: CreateStationTagDto,
+  ): Promise<StationTag> {
+    // Verificar que la estación existe
+    const station = await this.stationRepository.findOne({
+      where: { id: stationId },
+    });
+
+    if (!station) {
+      throw new NotFoundException(`Station with ID ${stationId} not found`);
+    }
+
+    // Verificar que el tag_uid no esté ya registrado
+    const existingTag = await this.stationTagRepository.findOne({
+      where: { tag_uid: createStationTagDto.tag_uid },
+    });
+
+    if (existingTag) {
+      throw new ConflictException('This NFC tag is already registered');
+    }
+
+    // Crear el nuevo tag NFC
+    const stationTag = this.stationTagRepository.create({
+      station,
+      tag_uid: createStationTagDto.tag_uid,
+      tag_type: createStationTagDto.tag_type,
+      meta: createStationTagDto.meta,
+    });
+
+    return this.stationTagRepository.save(stationTag);
   }
 }

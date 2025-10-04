@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Umbrella } from './umbrella.entity';
 import { Rental } from './rental.entity';
+import { StationTag } from './station-tag.entity';
 import type { Point } from 'geojson';
 
 @Entity('stations')
@@ -43,4 +44,7 @@ export class Station {
 
   @OneToMany(() => Rental, (rental) => rental.end_station)
   ended_rentals: Rental[];
+
+  @OneToMany(() => StationTag, (tag) => tag.station)
+  tags: StationTag[];
 }

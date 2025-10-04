@@ -11,17 +11,31 @@ export class RentalsController {
   @Post('start')
   async start(@Body() startRentalDto: StartRentalDto) {
     const rental = await this.rentalsService.start(startRentalDto);
-    return { rental_id: rental.id, start_time: rental.start_time, status: rental.status, auth_attempts: rental.auth_attempts };
+    return {
+      rental_id: rental.id,
+      start_time: rental.start_time,
+      status: rental.status,
+      auth_attempts: rental.auth_attempts,
+    };
   }
 
   @Post('end')
   async end(@Body() endRentalDto: EndRentalDto) {
     const rental = await this.rentalsService.end(endRentalDto);
-    return { rental_id: rental.id, end_time: rental.end_time, status: rental.status, duration_minutes: rental.duration_minutes, distance_meters: rental.distance_meters };
+    return {
+      rental_id: rental.id,
+      end_time: rental.end_time,
+      status: rental.status,
+      duration_minutes: rental.duration_minutes,
+      distance_meters: rental.distance_meters,
+    };
   }
 
   @Get()
-  find(@Query('user_id') user_id: string, @Query('status') status: RentalStatus) {
+  find(
+    @Query('user_id') user_id: string,
+    @Query('status') status: RentalStatus,
+  ) {
     return this.rentalsService.find(user_id, status);
   }
 
