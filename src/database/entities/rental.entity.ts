@@ -26,18 +26,6 @@ export class Rental {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'uuid' })
-  user_id: string;
-
-  @Column({ type: 'uuid' })
-  umbrella_id: string;
-
-  @Column({ type: 'uuid' })
-  station_start_id: string;
-
-  @Column({ type: 'uuid', nullable: true })
-  station_end_id: string;
-
   @Column({ type: 'timestamptz' })
   start_time: Date;
 
@@ -52,9 +40,6 @@ export class Rental {
 
   @Column({ type: 'integer', nullable: true })
   distance_meters: number;
-
-  @Column({ type: 'uuid', nullable: true })
-  payment_method_id: string;
 
   @Column({ type: 'enum', enum: AuthType })
   auth_type: AuthType;
@@ -74,11 +59,13 @@ export class Rental {
   @JoinColumn({ name: 'station_start_id' })
   start_station: Station;
 
-  @ManyToOne(() => Station, (station) => station.ended_rentals, { nullable: true })
+  @ManyToOne(() => Station, (station) => station.ended_rentals, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'station_end_id' })
   end_station: Station;
 
-  @ManyToOne(() => PaymentMethod)
+  @ManyToOne(() => PaymentMethod, { nullable: true })
   @JoinColumn({ name: 'payment_method_id' })
   payment_method: PaymentMethod;
 }

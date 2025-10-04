@@ -1,4 +1,10 @@
-import { IsEnum, IsNotEmpty, IsObject, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 import { AuthType } from '../../database/entities/rental.entity';
 
 class GpsCoordDto {
@@ -13,10 +19,6 @@ export class StartRentalDto {
   @IsNotEmpty()
   @IsUUID()
   user_id: string;
-
-  @IsNotEmpty()
-  @IsUUID()
-  umbrella_id: string;
 
   @IsNotEmpty()
   @IsUUID()

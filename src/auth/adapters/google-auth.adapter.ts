@@ -17,9 +17,10 @@ export interface AuthenticatedUser {
 
 @Injectable()
 export class GoogleAuthAdapter {
-  private googleUrl = 'https://oauth2.googleapis.com/tokeninfo';
+  private readonly googleUrl =
+    '751256331187-i160vbb6d96fo4bnnqhglrha2es9hla0.apps.googleusercontent.com';
 
-  constructor(private http: HttpService) {}
+  constructor(private readonly http: HttpService) {}
 
   async verifyToken(idToken: string): Promise<AuthenticatedUser> {
     try {
