@@ -19,7 +19,7 @@ export class StationsController {
     return this.stationsService.findNearby(queryStationDto);
   }
 
-  @Post()
+  @Post('nearby')
   findNearbyPost(@Body() queryStationDto: QueryStationDto) {
     return this.stationsService.findNearby(queryStationDto);
   }
