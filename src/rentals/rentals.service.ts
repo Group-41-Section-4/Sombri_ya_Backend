@@ -144,4 +144,12 @@ export class RentalsService {
     }
     return rental;
   }
+
+  async getUserHistory(userId: string) {
+    return this.rentalRepository.find({
+      where: { user: { id: userId } },
+      relations: ['station_start', 'end_station', 'umbrella'],
+      order: { start_time: 'DESC' },
+    });
+  }
 }

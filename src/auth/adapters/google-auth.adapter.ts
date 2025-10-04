@@ -23,6 +23,7 @@ export class GoogleAuthAdapter {
 
   async verifyToken(idToken: string): Promise<AuthenticatedUser> {
     try {
+      console.log('🟢 ID TOKEN recibido en el adapter:', idToken);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const response = await firstValueFrom(
         this.http.get<GooglePayload>(`${this.googleUrl}?id_token=${idToken}`),
@@ -38,11 +39,10 @@ export class GoogleAuthAdapter {
       const payload: GooglePayload = response.data;
 
       if (!allowedClients.includes(payload.aud)) {
-        throw new HttpException('Token inválido', 401);
-      }
-
-      if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-        throw new HttpException('Token inválido', 401);
+        throw new HttpException(
+          `Token inválido. Audiencia ${payload.aud} no permitida.`,
+          401,
+        );
       }
 
       return {

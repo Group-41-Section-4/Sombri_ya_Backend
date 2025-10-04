@@ -43,4 +43,18 @@ export class RentalsController {
   findOne(@Param('id') id: string) {
     return this.rentalsService.findOne(id);
   }
+
+  @Get('history/:user_id')
+  async getUserHistory(@Param('user_id') userId: string) {
+    const history = await this.rentalsService.getUserHistory(userId);
+    return history.map((rental) => ({
+      rental_id: rental.id,
+      start_time: rental.start_time,
+      end_time: rental.end_time,
+      status: rental.status,
+      duration_minutes: rental.duration_minutes,
+      station_start: rental.start_station?.place_name,
+      station_end: rental.end_station?.place_name,
+    }));
+  }
 }
