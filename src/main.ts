@@ -2,9 +2,21 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import {
+  initializeTransactionalContext,
+  addTransactionalDataSource,
+} from 'typeorm-transactional';
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
+  // Inicializar el contexto transaccional
+  initializeTransactionalContext();
+
   const app = await NestFactory.create(AppModule, { cors: true });
+
+  // Registrar el DataSource con el sistema transaccional
+  const dataSource = app.get(DataSource);
+  addTransactionalDataSource(dataSource);
 
   const config = new DocumentBuilder()
     .setTitle('Sombrí-Ya API')
