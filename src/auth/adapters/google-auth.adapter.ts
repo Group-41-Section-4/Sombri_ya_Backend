@@ -38,11 +38,10 @@ export class GoogleAuthAdapter {
       const payload: GooglePayload = response.data;
 
       if (!allowedClients.includes(payload.aud)) {
-        throw new HttpException('Token inválido', 401);
-      }
-
-      if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
-        throw new HttpException('Token inválido', 401);
+        throw new HttpException(
+          `Token inválido. Audiencia ${payload.aud} no permitida.`,
+          401,
+        );
       }
 
       return {
