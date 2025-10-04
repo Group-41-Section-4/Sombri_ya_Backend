@@ -17,8 +17,7 @@ export interface AuthenticatedUser {
 
 @Injectable()
 export class GoogleAuthAdapter {
-  private readonly googleUrl =
-    '751256331187-i160vbb6d96fo4bnnqhglrha2es9hla0.apps.googleusercontent.com';
+  private readonly googleUrl = 'https://oauth2.googleapis.com/tokeninfo';
 
   constructor(private readonly http: HttpService) {}
 
@@ -32,6 +31,7 @@ export class GoogleAuthAdapter {
       const allowedClients = [
         process.env.GOOGLE_CLIENT_KOTLIN,
         process.env.GOOGLE_CLIENT_FLUTTER,
+        process.env.GOOGLE_CLIENT_ID,
       ];
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
