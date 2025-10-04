@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -28,10 +36,21 @@ export class UsersController {
     return this.usersService.getTotalDistanceKm(id);
   }
 
-  @Put(':id')
+  @Get('me')
   @UseGuards(JwtAuthGuard)
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    console.log('🟦 PUT /users/:id recibido', id, updateUserDto);
-    return this.usersService.update(id, updateUserDto);
+  async getProfile(@Request() req: any) {
+    // 🔍 Usa el id del JWT (puede ser req.user.id o req.user.userId)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const userId = req.user.id || req.user.userId;
+
+    // 🧠 Busca el usuario real en la DB
+    const user = await this.usersService.findOne(userId);
+
+    // 🔁 Devuelve solo los campos que quieras exponer
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    };
   }
 }
