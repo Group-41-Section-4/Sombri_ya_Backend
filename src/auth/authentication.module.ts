@@ -9,6 +9,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { PasswordStrategy } from './strategies/password.strategy';
 import { JwtStrategy } from './strategies/jwt-auth.guard';
 import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   exports: [AuthService],
@@ -19,6 +20,7 @@ import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
       signOptions: { expiresIn: '1d' },
     }), 
     HttpModule,
+    UsersModule,
   ],
   providers: [AuthService, GoogleStrategy, PasswordStrategy, JwtStrategy, GoogleAuthAdapter],
   controllers: [AuthController],

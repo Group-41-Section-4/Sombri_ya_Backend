@@ -33,10 +33,23 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  try {
     const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID "${id}" not found`);
+    }
+
+    // Mezclamos solo las propiedades que existen
     Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+
+    const updatedUser = await this.userRepository.save(user);
+    return updatedUser;
+  } catch (error) {
+    console.error('❌ Error actualizando usuario:', error);
+    throw error;
   }
+}
+
 
   async getTotalDistanceKm(
     userId: string,
