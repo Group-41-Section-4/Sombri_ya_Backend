@@ -1,9 +1,18 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { StationsService } from './stations.service';
 import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
 import { AddUmbrellaDto } from '../umbrellas/dto/add-umbrella.dto';
 import { CreateStationTagDto } from './dto/create-station-tag.dto';
+import { StationTag } from '../database/entities/station-tag.entity';
 
 @Controller('stations')
 export class StationsController {
@@ -43,10 +52,15 @@ export class StationsController {
   }
 
   @Post(':id/tags')
-  registerNFCTag(
+  @HttpCode(HttpStatus.CREATED)
+  async registerNFCTag(
     @Param('id') id: string,
     @Body() createStationTagDto: CreateStationTagDto,
-  ) {
-    return this.stationsService.registerNFCTag(id, createStationTagDto);
+  ): Promise<StationTag> {
+    const tag = await this.stationsService.registerNFCTag(
+      id,
+      createStationTagDto,
+    );
+    return tag;
   }
 }

@@ -14,6 +14,7 @@ import { FeatureLogModule } from './feature-log/feature-log.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { WeatherModule } from './weather/weather.module';
 import { AuthModule } from './auth/authentication.module';
+import { TagsModule } from './tags/tags.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AuthModule } from './auth/authentication.module';
     AnalyticsModule,
     WeatherModule,
     AuthModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
