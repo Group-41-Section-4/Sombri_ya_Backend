@@ -17,7 +17,7 @@ export class QueryStationDto {
 
   @IsOptional()
   @IsNumber()
-  radius_m?: number = 100;
+  radius_m?: number = 10000;
 
   @IsOptional()
   @IsNumber()

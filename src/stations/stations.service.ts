@@ -5,8 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Transactional } from 'typeorm-transactional';
 import { Station } from '../database/entities/station.entity';
 import { StationTag } from '../database/entities/station-tag.entity';
+import { Rental } from '../database/entities/rental.entity';
 import { CreateStationDto } from './dto/create-station.dto';
 import { QueryStationDto } from './dto/query-station.dto';
 import { CreateStationTagDto } from './dto/create-station-tag.dto';
@@ -23,11 +25,14 @@ export class StationsService {
     private readonly umbrellaRepository: Repository<Umbrella>,
     @InjectRepository(StationTag)
     private readonly stationTagRepository: Repository<StationTag>,
+    @InjectRepository(Rental)
+    private readonly rentalRepository: Repository<Rental>,
   ) {}
 
   async create(createStationDto: CreateStationDto): Promise<Station> {
     const station = this.stationRepository.create({
       ...createStationDto,
+      capacity: createStationDto.capacity || 10, // Valor por defecto si no se proporciona
       location: {
         type: 'Point',
         coordinates: [createStationDto.longitude, createStationDto.latitude],
@@ -52,7 +57,7 @@ export class StationsService {
       longitude: number;
       distanceMeters: number | string;
       availableUmbrellas: number | string;
-      totalUmbrellas: number | string;
+      capacity: number | string; // TODO: Change DTO field name from totalUmbrellas to capacity
     };
 
     const stationsRaw: StationRaw[] = await this.stationRepository
@@ -75,14 +80,7 @@ export class StationsService {
             }),
         'availableUmbrellas',
       )
-      .addSelect(
-        (subQuery) =>
-          subQuery
-            .select('COUNT(*)')
-            .from(Umbrella, 'u')
-            .where(`u.station_id = station.id`),
-        'totalUmbrellas',
-      )
+      .addSelect('station.capacity', 'capacity')
       .where(`ST_DWithin(station.location, ${userLocation}, :radius)`)
       .orderBy('"distanceMeters"', 'ASC')
       .setParameter('radius', radiusInMeters)
@@ -95,7 +93,7 @@ export class StationsService {
         ...station,
         distanceMeters: Math.round(Number(station.distanceMeters)),
         availableUmbrellas: parseInt(String(station.availableUmbrellas), 10),
-        totalUmbrellas: parseInt(String(station.totalUmbrellas), 10),
+        totalUmbrellas: parseInt(String(station.capacity ?? 10), 10), // TODO: Map capacity to totalUmbrellas field, default 10 for null values
       }),
     );
   }
@@ -123,6 +121,17 @@ export class StationsService {
 
     if (!station) {
       throw new NotFoundException(`Station with ID ${stationId} not found`);
+    }
+
+    // Verificar capacidad de la estación
+    const currentUmbrellaCount = await this.umbrellaRepository.count({
+      where: { station: { id: stationId } },
+    });
+
+    if (currentUmbrellaCount >= (station.capacity ?? 0)) {
+      throw new ConflictException(
+        `Station has reached its maximum capacity of ${station.capacity} umbrellas`,
+      );
     }
 
     // Crear nueva sombrilla
@@ -166,5 +175,41 @@ export class StationsService {
     });
 
     return this.stationTagRepository.save(stationTag);
+  }
+
+  @Transactional()
+  async deleteAll(): Promise<{
+    deletedStations: number;
+    deletedUmbrellas: number;
+    deletedTags: number;
+    updatedRentals: number;
+  }> {
+    // Contar antes de eliminar para estadísticas
+    const totalUmbrellas = await this.umbrellaRepository.count();
+    const totalTags = await this.stationTagRepository.count();
+    const totalStations = await this.stationRepository.count();
+    const totalRentals = await this.rentalRepository.count();
+
+    // Primero, actualizar las rentas que referencian estaciones
+    await this.rentalRepository.query(
+      'UPDATE rentals SET station_start_id = NULL WHERE station_start_id IS NOT NULL',
+    );
+
+    await this.rentalRepository.query(
+      'UPDATE rentals SET station_end_id = NULL WHERE station_end_id IS NOT NULL',
+    );
+
+    // Eliminar usando SQL directo para evitar problemas de FK constraints
+    await this.rentalRepository.query('DELETE FROM rentals');
+    await this.umbrellaRepository.query('DELETE FROM umbrellas');
+    await this.stationTagRepository.query('DELETE FROM station_tags');
+    await this.stationRepository.query('DELETE FROM stations');
+
+    return {
+      deletedStations: totalStations,
+      deletedUmbrellas: totalUmbrellas,
+      deletedTags: totalTags,
+      updatedRentals: totalRentals,
+    };
   }
 }

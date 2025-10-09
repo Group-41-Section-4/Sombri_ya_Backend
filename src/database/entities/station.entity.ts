@@ -21,6 +21,9 @@ export class Station {
   @Column({ type: 'varchar', length: 255 })
   place_name: string;
 
+  @Column({ type: 'int', nullable: true, default: 10 })
+  capacity?: number;
+
   @Column({ type: 'decimal', precision: 10, scale: 6 })
   latitude: number;
 

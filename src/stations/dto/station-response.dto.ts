@@ -6,5 +6,5 @@ export class StationResponseDto {
   longitude: number;
   distanceMeters: number;
   availableUmbrellas: number;
-  totalUmbrellas: number;
+  totalUmbrellas: number; // TODO: Change to capacity - represents station capacity limit
 }

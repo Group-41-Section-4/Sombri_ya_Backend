@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
@@ -29,6 +33,14 @@ export class RentalsService {
     const { user_id, station_start_id, payment_method_id, auth_type } =
       startRentalDto;
 
+    // Verificar que la estación existe y obtener su capacidad
+    const startStation = await this.stationRepository.findOneBy({
+      id: station_start_id,
+    });
+    if (!startStation) {
+      throw new NotFoundException('Station not found');
+    }
+
     // Obtener la primera sombrilla disponible de la estación
     const umbrella = await this.umbrellaRepository.findOne({
       where: {
@@ -52,13 +64,6 @@ export class RentalsService {
     const user = await this.userRepository.findOneBy({ id: user_id });
     if (!user) {
       throw new NotFoundException('User not found');
-    }
-
-    const startStation = await this.stationRepository.findOneBy({
-      id: station_start_id,
-    });
-    if (!startStation) {
-      throw new NotFoundException('Station not found');
     }
 
     let paymentMethod: PaymentMethod | null = null;
@@ -109,6 +114,17 @@ export class RentalsService {
         id: station_end_id,
       });
       if (endStation) {
+        // Verificar capacidad de la estación de destino
+        const currentUmbrellaCount = await this.umbrellaRepository.count({
+          where: { station: { id: station_end_id } },
+        });
+
+        if (currentUmbrellaCount >= (endStation.capacity ?? 0)) {
+          throw new ConflictException(
+            `Destination station has reached its maximum capacity of ${endStation.capacity} umbrellas`,
+          );
+        }
+
         rental.end_station = endStation;
         rental.umbrella.station = endStation;
       }
@@ -151,5 +167,42 @@ export class RentalsService {
       relations: ['station_start', 'end_station', 'umbrella'],
       order: { start_time: 'DESC' },
     });
+  }
+
+  @Transactional()
+  async deleteAll(): Promise<{
+    deletedCount: number;
+    updatedUmbrellas: number;
+  }> {
+    // Obtener todas las rentas con sus sombrillas para poder actualizar los estados
+    const rentals = await this.rentalRepository.find({
+      relations: ['umbrella'],
+    });
+
+    const deletedCount = rentals.length;
+
+    // Actualizar estado de las sombrillas de RENTED a AVAILABLE
+    const umbrellaIds = rentals
+      .filter(
+        (rental) =>
+          rental.umbrella && rental.umbrella.state === UmbrellaState.RENTED,
+      )
+      .map((rental) => rental.umbrella.id);
+
+    let updatedUmbrellas = 0;
+    if (umbrellaIds.length > 0) {
+      const updateResult = await this.umbrellaRepository.update(umbrellaIds, {
+        state: UmbrellaState.AVAILABLE,
+      });
+      updatedUmbrellas = updateResult.affected || 0;
+    }
+
+    // Eliminar todas las rentas usando SQL directo para evitar problemas de FK
+    await this.rentalRepository.query('DELETE FROM rentals');
+
+    return {
+      deletedCount,
+      updatedUmbrellas,
+    };
   }
 }

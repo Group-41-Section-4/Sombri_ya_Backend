@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { RentalsService } from './rentals.service';
 import { StartRentalDto } from './dto/start-rental.dto';
 import { EndRentalDto } from './dto/end-rental.dto';
@@ -56,5 +64,15 @@ export class RentalsController {
       station_start: rental.start_station?.place_name,
       station_end: rental.end_station?.place_name,
     }));
+  }
+
+  @Delete()
+  async deleteAll() {
+    const result = await this.rentalsService.deleteAll();
+    return {
+      message: 'All rentals deleted successfully',
+      deletedCount: result.deletedCount,
+      updatedUmbrellas: result.updatedUmbrellas,
+    };
   }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -62,5 +63,17 @@ export class StationsController {
       createStationTagDto,
     );
     return tag;
+  }
+
+  @Delete()
+  async deleteAll() {
+    const result = await this.stationsService.deleteAll();
+    return {
+      message: 'All stations deleted successfully',
+      deletedStations: result.deletedStations,
+      deletedUmbrellas: result.deletedUmbrellas,
+      deletedTags: result.deletedTags,
+      updatedRentals: result.updatedRentals,
+    };
   }
 }

@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, IsLatitude, IsLongitude } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsLatitude,
+  IsLongitude,
+  IsOptional,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 export class CreateStationDto {
   @IsNotEmpty()
@@ -8,6 +16,11 @@ export class CreateStationDto {
   @IsNotEmpty()
   @IsString()
   description: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  capacity: number = 10;
 
   @IsNotEmpty()
   @IsLatitude()
