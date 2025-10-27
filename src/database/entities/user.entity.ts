@@ -41,4 +41,7 @@ export class User {
 
   @OneToMany(() => FeatureLog, (log) => log.user)
   feature_logs: FeatureLog[];
+
+  @Column({type: 'decimal', precision: 10, scale: 2, default: 0.0,name: 'total_pedometer_km',})
+  total_pedometer_km: number;
 }

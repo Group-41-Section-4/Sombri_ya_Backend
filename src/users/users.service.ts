@@ -104,6 +104,19 @@ export class UsersService {
     return R * c; // Distancia en kilómetros
   }
 
+  async addPedometerDistance(
+    userId: string,
+    distanceKm: number,
+  ): Promise<User> {
+    const user = await this.findOne(userId);
+    const currentDistance = Number(user.total_pedometer_km) || 0.0;
+    const newDistance = Number(distanceKm) || 0.0;
+
+    user.total_pedometer_km = currentDistance + newDistance;
+
+    return this.userRepository.save(user);
+  }
+
   private toRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
   }
