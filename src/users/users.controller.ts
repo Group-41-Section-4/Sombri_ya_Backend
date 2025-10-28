@@ -12,7 +12,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { AddDistanceDto } from './dto/add-distance.dto.ts';
+import { AddDistanceDto } from './dto/add-distance.dto';
 
 @Controller('users')
 export class UsersController {
