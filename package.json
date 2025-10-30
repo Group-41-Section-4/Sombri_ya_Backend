@@ -22,7 +22,10 @@
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts",
     "seed:clean": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts --clean",
     "db:drop": "npm run typeorm -- schema:drop",
-    "db:reset": "npm run db:drop && npm run seed"
+    "db:reset": "npm run db:drop && npm run seed",
+    "heroku-postbuild": "npm run build",
+    "typeorm:prod": "node ./node_modules/typeorm/cli.js -d dist/database/data-source.js"
+
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
