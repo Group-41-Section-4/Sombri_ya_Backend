@@ -7,6 +7,7 @@ import {
   ValidationPipe,
   UseGuards,
   Get,
+  Request,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './authentication.service';
