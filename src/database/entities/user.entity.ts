@@ -44,4 +44,13 @@ export class User {
 
   @Column({type: 'decimal', precision: 10, scale: 2, default: 0.0,name: 'total_pedometer_km',})
   total_pedometer_km: number;
+
+  @Column({ nullable: true })
+  passwordResetTokenHash?: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  passwordResetExpires?: Date | null;
+
+  @Column({ type: 'int', default: 0 })
+  passwordVersion!: number;
 }

@@ -2,9 +2,11 @@ import {
   Controller,
   Post,
   Body,
-  Get,
+  HttpCode,
+  UsePipes,
+  ValidationPipe,
   UseGuards,
-  Request,
+  Get,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './authentication.service';
@@ -13,13 +15,17 @@ import { PasswordStrategy } from './strategies/password.strategy';
 import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
 import * as bcrypt from 'bcrypt';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
+  [x: string]: any;
   constructor(
     private readonly authService: AuthService,
     private readonly jwt: JwtService,
     private readonly googleAdapter: GoogleAuthAdapter,
+    private readonly auth: AuthService,
   ) {}
 
   @Post('login/google')
@@ -78,5 +84,20 @@ export class AuthController {
   getProfile(@Request() req: any) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     return req.user; // aquí el JWT guard mete el user.id, email, name, etc.
+  }
+
+  @Post('password/forgot')
+  @HttpCode(200)
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async forgot(@Body() dto: ForgotPasswordDto) {
+    return this.auth.requestPasswordReset(dto.email);
+  }
+
+  @Post('password/reset')
+  @HttpCode(200)
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async reset(@Body() dto: ResetPasswordDto) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.auth.resetPassword(dto.userId, dto.token, dto.newPassword);
   }
 }
