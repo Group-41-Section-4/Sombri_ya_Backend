@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../database/entities/user.entity';
 import * as bcrypt from 'bcrypt';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MailerService } from '@nestjs-modules/mailer';
 import * as crypto from 'crypto';
 
@@ -17,12 +16,10 @@ export class AuthService {
 
   async findOrCreateUser(email: string, name: string) {
     let user = await this.userRepo.findOne({ where: { email } });
-
     if (!user) {
       user = this.userRepo.create({ email, name });
       user = await this.userRepo.save(user);
     }
-
     return user;
   }
 
@@ -37,45 +34,56 @@ export class AuthService {
     biometric_enabled: boolean,
   ) {
     const hashedPassword: string = await bcrypt.hash(password, 10);
-
     const user = this.userRepo.create({
       email,
       name,
       password: hashedPassword,
       biometric_enabled,
     });
-
     return this.userRepo.save(user);
   }
-
   // =============== FORGOT ===============
   async requestPasswordReset(email: string) {
-    const user = await this.userRepo.findOne({ where: { email } });
+    const generic = { ok: true };
 
-    if (!user) return { ok: true };
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) {
+      await new Promise((r) => setTimeout(r, 100));
+      return generic;
+    }
 
     const rawToken = crypto.randomBytes(32).toString('base64url');
-
     const tokenHash = await bcrypt.hash(rawToken, 10);
-
     const expires = new Date(Date.now() + 30 * 60 * 1000);
 
     user.passwordResetTokenHash = tokenHash;
     user.passwordResetExpires = expires;
     await this.userRepo.save(user);
 
-    const scheme = process.env.APP_SCHEME ?? 'sombri-ya';
-    const host = process.env.APP_SCHEME_HOST ?? 'reset-password';
+    const base = process.env.RESET_LINK_BASE ?? 'https://sombri-ya.app/reset';
+    const link = `${base}?user=${encodeURIComponent(user.id)}&token=${encodeURIComponent(rawToken)}`;
 
-    const deepLink = `${scheme}://${host}?userId=${user.id}&token=${rawToken}`;
-
-    await this.sendPasswordResetEmail(user.email, { deepLink });
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[DEV] Reset links:', { deepLink });
+    try {
+      await this.mailer.sendMail({
+        to: user.email,
+        subject: 'Recupera tu contraseña',
+        html: `
+          <p>Hola,</p>
+          <p>Para restablecer tu contraseña haz clic en el siguiente enlace:</p>
+          <p><a href="${link}">${link}</a></p>
+          <p>Este enlace vence en 30 minutos. Si no solicitaste esto, ignora este correo.</p>
+        `,
+      });
+    } catch (e) {
+      console.error('[reset email error]', e);
     }
 
-    return { ok: true };
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log('[DEV] Reset link:', link);
+    }
+
+    return generic;
   }
 
   // =============== RESET ===============
@@ -97,29 +105,13 @@ export class AuthService {
     const ok = await bcrypt.compare(rawToken, user.passwordResetTokenHash);
     if (!ok) throw new BadRequestException('Token inválido');
 
-    // Actualiza contraseña y limpia campos de reset
     user.password = await bcrypt.hash(newPassword, 10);
     user.passwordResetTokenHash = null;
     user.passwordResetExpires = null;
 
-    // Invalida JWTs previos (si verificas passwordVersion en tu JwtStrategy)
     user.passwordVersion = (user.passwordVersion ?? 0) + 1;
 
     await this.userRepo.save(user);
     return { ok: true };
-  }
-
-  // =============== EMAIL ===============
-  private async sendPasswordResetEmail(
-    to: string,
-    links: { deepLink: string },
-  ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    await this.mailer.sendMail({
-      to,
-      subject: 'Restablece tu contraseña',
-      template: 'reset-password',
-      context: links,
-    });
   }
 }
