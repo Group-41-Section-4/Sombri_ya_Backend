@@ -12,6 +12,7 @@ import { GoogleAuthAdapter } from './adapters/google-auth.adapter';
 import { UsersModule } from '../users/users.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { join } from 'path';
 
 @Module({
   exports: [AuthService],
@@ -32,7 +33,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         from: process.env.MAIL_FROM ?? '"Sombri-Ya" <fasti.food.col@gmail.com>',
       },
       template: {
-        dir: __dirname + '/templates',
+        dir: join(__dirname, 'templates'),
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
         adapter: new HandlebarsAdapter(),
         options: { strict: true },
