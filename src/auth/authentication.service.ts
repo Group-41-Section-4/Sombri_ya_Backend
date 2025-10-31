@@ -60,8 +60,18 @@ export class AuthService {
     user.passwordResetExpires = expires;
     await this.userRepo.save(user);
 
-    const base = process.env.RESET_LINK_BASE ?? 'https://sombri-ya.app/reset';
-    const link = `${base}?user=${encodeURIComponent(user.id)}&token=${encodeURIComponent(rawToken)}`;
+    // 🔑 Deep link hacia la app (primario)
+    // Ejemplo de valor por defecto: sombriya://reset
+    const appDeepLinkBase = process.env.APP_DEEPLINK_BASE ?? 'sombri-ya://reset-password';
+
+    // 🌐 Fallback web (solo por si la app no está instalada)
+    const webFallbackBase =
+      process.env.RESET_LINK_BASE ?? 'https://sombri-ya.app/reset';
+
+    const query = `user=${encodeURIComponent(user.id)}&token=${encodeURIComponent(rawToken)}`;
+
+    const appLink = `${appDeepLinkBase}?${query}`;
+    const webFallbackLink = `${webFallbackBase}?${query}`;
 
     try {
       await this.mailer.sendMail({
@@ -69,8 +79,10 @@ export class AuthService {
         subject: 'Recupera tu contraseña',
         html: `
           <p>Hola,</p>
-          <p>Para restablecer tu contraseña haz clic en el siguiente enlace:</p>
-          <p><a href="${link}">${link}</a></p>
+          <p>Para restablecer tu contraseña, abre el siguiente enlace desde tu <strong>celular con la app instalada</strong>:</p>
+          <p><a href="${appLink}">Abrir en Sombri-Ya</a></p>
+          <p style="font-size:12px;color:#666">Si el botón no funciona o no tienes la app instalada, usa este enlace alterno:</p>
+          <p style="font-size:12px"><a href="${webFallbackLink}">${webFallbackLink}</a></p>
           <p>Este enlace vence en 30 minutos. Si no solicitaste esto, ignora este correo.</p>
         `,
       });
@@ -79,8 +91,8 @@ export class AuthService {
     }
 
     if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.log('[DEV] Reset link:', link);
+      console.log('[DEV] App deep link:', appLink);
+      console.log('[DEV] Web fallback link:', webFallbackLink);
     }
 
     return generic;
@@ -108,7 +120,6 @@ export class AuthService {
     user.password = await bcrypt.hash(newPassword, 10);
     user.passwordResetTokenHash = null;
     user.passwordResetExpires = null;
-
     user.passwordVersion = (user.passwordVersion ?? 0) + 1;
 
     await this.userRepo.save(user);
