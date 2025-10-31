@@ -60,7 +60,6 @@ export class AuthService {
     user.passwordResetExpires = expires;
     await this.userRepo.save(user);
 
-    // 🔑 Deep link hacia la app (primario)
     // Ejemplo de valor por defecto: sombriya://reset
     const appDeepLinkBase =
       process.env.APP_DEEPLINK_BASE ?? 'sombri-ya://reset-password';
