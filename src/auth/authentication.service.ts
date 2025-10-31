@@ -9,10 +9,10 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
-  mailer: any;
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly mailer: MailerService,
   ) {}
 
   async findOrCreateUser(email: string, name: string) {
@@ -52,23 +52,18 @@ export class AuthService {
   async requestPasswordReset(email: string) {
     const user = await this.userRepo.findOne({ where: { email } });
 
-    // Siempre respondemos ok para no revelar existencia del email
     if (!user) return { ok: true };
 
-    // 1) Generar token crudo aleatorio
     const rawToken = crypto.randomBytes(32).toString('base64url');
 
-    // 2) Hashear token para almacenar (bcrypt)
     const tokenHash = await bcrypt.hash(rawToken, 10);
 
-    // 3) Expiración (30 minutos)
     const expires = new Date(Date.now() + 30 * 60 * 1000);
 
     user.passwordResetTokenHash = tokenHash;
     user.passwordResetExpires = expires;
     await this.userRepo.save(user);
 
-    // 4) Construir enlaces (deep link + web)
     const scheme = process.env.APP_SCHEME ?? 'sombri-ya';
     const host = process.env.APP_SCHEME_HOST ?? 'reset-password';
 
@@ -77,8 +72,6 @@ export class AuthService {
     await this.sendPasswordResetEmail(user.email, { deepLink });
 
     if (process.env.NODE_ENV !== 'production') {
-      // Para probar rápido en dev
-      // eslint-disable-next-line no-console
       console.log('[DEV] Reset links:', { deepLink });
     }
 

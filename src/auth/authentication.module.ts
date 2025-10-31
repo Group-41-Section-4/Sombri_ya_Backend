@@ -29,7 +29,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         },
       },
       defaults: {
-        from: process.env.MAIL_FROM ?? '"Sombri-Ya" <no-reply@ejemplo.com>',
+        from: process.env.MAIL_FROM ?? '"Sombri-Ya" <fasti.food.col@gmail.com>',
       },
       template: {
         dir: __dirname + '/templates',
@@ -45,7 +45,13 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
     HttpModule,
     UsersModule,
   ],
-  providers: [AuthService, GoogleStrategy, PasswordStrategy, JwtStrategy, GoogleAuthAdapter],
+  providers: [
+    AuthService,
+    GoogleStrategy,
+    PasswordStrategy,
+    JwtStrategy,
+    GoogleAuthAdapter,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}
