@@ -13,7 +13,7 @@ import { RentalsService } from './rentals.service';
 import { StartRentalDto } from './dto/start-rental.dto';
 import { EndRentalDto } from './dto/end-rental.dto';
 import { RentalStatus } from '../database/entities/rental.entity';
-import { RentalsExportDto } from './dto/rentals-export.dto';
+import { RentalsExportDto } from './dto/rental-export.dto';
 
 @Controller('rentals')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
