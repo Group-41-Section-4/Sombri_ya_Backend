@@ -4,7 +4,8 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
 import { Rental, RentalStatus } from '../database/entities/rental.entity';
 import { Umbrella, UmbrellaState } from '../database/entities/umbrella.entity';
@@ -12,6 +13,7 @@ import { StartRentalDto } from './dto/start-rental.dto';
 import { EndRentalDto } from './dto/end-rental.dto';
 import { Station } from 'src/database/entities/station.entity';
 import { PaymentMethod, User } from 'src/database/entities';
+import { RentalsExportDto } from './dto/rental-export.dto';
 
 @Injectable()
 export class RentalsService {
@@ -33,15 +35,11 @@ export class RentalsService {
     const { user_id, station_start_id, payment_method_id, auth_type } =
       startRentalDto;
 
-    // Verificar que la estación existe y obtener su capacidad
     const startStation = await this.stationRepository.findOneBy({
       id: station_start_id,
     });
-    if (!startStation) {
-      throw new NotFoundException('Station not found');
-    }
+    if (!startStation) throw new NotFoundException('Station not found');
 
-    // Obtener la primera sombrilla disponible de la estación
     const umbrella = await this.umbrellaRepository.findOne({
       where: {
         station: { id: station_start_id },
@@ -49,22 +47,17 @@ export class RentalsService {
       },
       relations: ['station'],
     });
-
     if (!umbrella) {
       throw new NotFoundException('No available umbrellas at this station');
     }
 
-    // Verificar que el usuario no tenga una renta activa
     const activeRental = await this.findActiveRental(user_id);
     if (activeRental) {
-      throw new NotFoundException('User already has an active rental');
+      throw new ConflictException('User already has an active rental');
     }
 
-    // Obtener entidades relacionadas
     const user = await this.userRepository.findOneBy({ id: user_id });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     let paymentMethod: PaymentMethod | null = null;
     if (payment_method_id) {
@@ -73,11 +66,9 @@ export class RentalsService {
       });
     }
 
-    // Cambiar estado de la sombrilla
     umbrella.state = UmbrellaState.RENTED;
     await this.umbrellaRepository.save(umbrella);
 
-    // Crear el rental
     const rental = this.rentalRepository.create({
       user,
       umbrella,
@@ -95,14 +86,11 @@ export class RentalsService {
   async end(endRentalDto: EndRentalDto): Promise<Rental> {
     const { user_id, station_end_id } = endRentalDto;
 
-    // Buscar la renta activa del usuario
     const rental = await this.findActiveRental(user_id);
-
     if (!rental) {
       throw new NotFoundException('No active rental found for this user.');
     }
 
-    // Update rental
     rental.end_time = new Date();
     rental.status = RentalStatus.COMPLETED;
     rental.duration_minutes = Math.round(
@@ -114,59 +102,134 @@ export class RentalsService {
         id: station_end_id,
       });
       if (endStation) {
-        // Verificar capacidad de la estación de destino
         const currentUmbrellaCount = await this.umbrellaRepository.count({
           where: { station: { id: station_end_id } },
         });
-
         if (currentUmbrellaCount >= (endStation.capacity ?? 0)) {
           throw new ConflictException(
             `Destination station has reached its maximum capacity of ${endStation.capacity} umbrellas`,
           );
         }
-
         rental.end_station = endStation;
         rental.umbrella.station = endStation;
       }
     }
 
-    // Update umbrella
     rental.umbrella.state = UmbrellaState.AVAILABLE;
     await this.umbrellaRepository.save(rental.umbrella);
 
     return this.rentalRepository.save(rental);
   }
 
-  async find(user_id: string, status: RentalStatus): Promise<Rental[]> {
+  async find(user_id?: string, status?: RentalStatus): Promise<Rental[]> {
     return this.rentalRepository.find({
-      where: { user: { id: user_id }, status },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      where: {
+        ...(user_id ? { user: { id: user_id } } : {}),
+        ...(status ? { status } : {}),
+      } as any,
     });
   }
 
   async findActiveRental(user_id: string): Promise<Rental | null> {
     return this.rentalRepository.findOne({
-      where: {
-        user: { id: user_id },
-        status: RentalStatus.ONGOING,
-      },
+      where: { user: { id: user_id }, status: RentalStatus.ONGOING },
       relations: ['umbrella', 'start_station'],
     });
   }
 
   async findOne(id: string): Promise<Rental> {
     const rental = await this.rentalRepository.findOneBy({ id });
-    if (!rental) {
+    if (!rental)
       throw new NotFoundException(`Rental with ID "${id}" not found`);
-    }
     return rental;
   }
 
   async getUserHistory(userId: string) {
     return this.rentalRepository.find({
       where: { user: { id: userId } },
-      relations: ['station_start', 'end_station', 'umbrella'],
+      relations: ['start_station', 'end_station', 'umbrella'], // <-- corregido
       order: { start_time: 'DESC' },
     });
+  }
+
+  /**
+   * Export paginado con cursor (updatedAt|id). Devuelve { data, nextCursor }.
+   */
+  async exportRentals(q: RentalsExportDto & { limit: number }): Promise<{
+    data: Array<any>;
+    nextCursor: string | null;
+  }> {
+    const qb = this.rentalRepository
+      .createQueryBuilder('r')
+      .select([
+        'r.id AS id',
+        'r.status AS status',
+        'r.start_time AS start_time',
+        'r.end_time AS end_time',
+        'r.duration_minutes AS duration_minutes',
+        'r.distance_meters AS distance_meters',
+        'r.updated_at AS updated_at',
+        'u.id AS user_id',
+        'us.id AS umbrella_id',
+        'ss.id AS start_station_id',
+        'es.id AS end_station_id',
+      ])
+      .leftJoin('r.user', 'u')
+      .leftJoin('r.umbrella', 'us')
+      .leftJoin('r.start_station', 'ss')
+      .leftJoin('r.end_station', 'es');
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    if (q.start) qb.andWhere('r.start_time >= :start', { start: q.start });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    if (q.end) qb.andWhere('r.start_time < :end', { end: q.end });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    if (q.status) qb.andWhere('r.status = :status', { status: q.status });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (q.placeId)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      qb.andWhere('(ss.id = :pid OR es.id = :pid)', { pid: q.placeId });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+    if (q.userId) qb.andWhere('u.id = :uid', { uid: q.userId });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (q.updatedSince)
+      qb.andWhere('COALESCE(r.updated_at, r.end_time, r.start_time) >= :u', {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        u: q.updatedSince,
+      });
+
+    // Cursor simple: (updated_at_fallback, id)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (q.cursor) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const [u, id] = q.cursor.split('|');
+      qb.andWhere(
+        '(COALESCE(r.updated_at, r.end_time, r.start_time), r.id) > (:u, :id)',
+        { u, id },
+      );
+    }
+
+    qb.orderBy('COALESCE(r.updated_at, r.end_time, r.start_time)', 'ASC')
+      .addOrderBy('r.id', 'ASC')
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+      .limit(q.limit);
+
+    const rows = await qb.getRawMany();
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const last = rows[rows.length - 1];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const lastUpdated =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      last?.updated_at ?? last?.end_time ?? last?.start_time ?? null;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const nextCursor = lastUpdated
+      ? `${new Date(lastUpdated).toISOString()}|${last.id}`
+      : null;
+
+    return { data: rows, nextCursor };
   }
 
   @Transactional()
@@ -174,20 +237,14 @@ export class RentalsService {
     deletedCount: number;
     updatedUmbrellas: number;
   }> {
-    // Obtener todas las rentas con sus sombrillas para poder actualizar los estados
     const rentals = await this.rentalRepository.find({
       relations: ['umbrella'],
     });
-
     const deletedCount = rentals.length;
 
-    // Actualizar estado de las sombrillas de RENTED a AVAILABLE
     const umbrellaIds = rentals
-      .filter(
-        (rental) =>
-          rental.umbrella && rental.umbrella.state === UmbrellaState.RENTED,
-      )
-      .map((rental) => rental.umbrella.id);
+      .filter((r) => r.umbrella && r.umbrella.state === UmbrellaState.RENTED)
+      .map((r) => r.umbrella.id);
 
     let updatedUmbrellas = 0;
     if (umbrellaIds.length > 0) {
@@ -197,12 +254,8 @@ export class RentalsService {
       updatedUmbrellas = updateResult.affected || 0;
     }
 
-    // Eliminar todas las rentas usando SQL directo para evitar problemas de FK
     await this.rentalRepository.query('DELETE FROM rentals');
 
-    return {
-      deletedCount,
-      updatedUmbrellas,
-    };
+    return { deletedCount, updatedUmbrellas };
   }
 }
