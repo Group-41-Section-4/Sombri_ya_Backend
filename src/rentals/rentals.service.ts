@@ -7,7 +7,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Transactional } from 'typeorm-transactional';
-import { Rental, RentalStatus } from '../database/entities/rental.entity';
+import {
+  AuthType,
+  Rental,
+  RentalStatus,
+} from '../database/entities/rental.entity';
 import { Umbrella, UmbrellaState } from '../database/entities/umbrella.entity';
 import { StartRentalDto } from './dto/start-rental.dto';
 import { EndRentalDto } from './dto/end-rental.dto';
