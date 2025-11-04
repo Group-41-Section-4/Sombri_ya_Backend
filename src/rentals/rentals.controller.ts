@@ -43,6 +43,11 @@ export class RentalsController {
     };
   }
 
+  @Get('stats/auth-types')
+  async getAuthTypeCounts() {
+    return this.rentalsService.getAuthTypeCounts();
+  }
+
   // --- place specific routes BEFORE :id to avoid collisions ---
 
   // /rentals/history/:user_id

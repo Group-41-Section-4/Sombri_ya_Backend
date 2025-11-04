@@ -232,6 +232,30 @@ export class RentalsService {
     return { data: rows, nextCursor };
   }
 
+  async getAuthTypeCounts(): Promise<{ nfc: number; qr: number }> {
+    const counts = await this.rentalRepository //
+      .createQueryBuilder('rental')
+      .select('rental.auth_type', 'auth_type')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('rental.auth_type')
+      .getRawMany();
+
+    const result = {
+      [AuthType.NFC]: 0,
+      [AuthType.QR]: 0,
+    };
+
+    for (const row of counts) {
+      if (row.auth_type === AuthType.NFC) {
+        result.nfc = parseInt(row.count, 10) || 0;
+      } else if (row.auth_type === AuthType.QR) {
+        result.qr = parseInt(row.count, 10) || 0;
+      }
+    }
+
+    return result;
+  }
+
   @Transactional()
   async deleteAll(): Promise<{
     deletedCount: number;
