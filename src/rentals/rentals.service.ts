@@ -2,7 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  BadRequestException, 
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -159,8 +159,8 @@ export class RentalsService {
   }
 
   /**
-   * Export paginado con cursor (updatedAt|id). Devuelve { data, nextCursor }.
-   * Usa Postgres row-comparison y tiene fallback si no está disponible.
+   * Export paginado por cursor usando (COALESCE(end_time, start_time), id).
+   * Devuelve { data, nextCursor }.
    */
   async exportRentals(
     q: RentalsExportDto & { limit: number },
@@ -178,15 +178,13 @@ export class RentalsService {
         'r.status AS status',
         'r.start_time AS start_time',
         'r.end_time AS end_time',
-        // Calcula duración en minutos (evita depender de la columna física)
         `CASE 
            WHEN r.end_time IS NOT NULL AND r.start_time IS NOT NULL 
            THEN ROUND(EXTRACT(EPOCH FROM (r.end_time - r.start_time)) / 60.0)::int 
            ELSE NULL 
          END AS duration_minutes`,
-        // Si TIENES columna distance_meters, descomenta la siguiente línea:
-        // 'r.distance_meters AS distance_meters',
-        'r.updated_at AS updated_at',
+        // 'r.distance_meters AS distance_meters', // descomenta si existe
+        'COALESCE(r.end_time, r.start_time) AS sort_ts',
         'u.id AS user_id',
         'um.id AS umbrella_id',
         'ss.id AS start_station_id',
@@ -200,12 +198,12 @@ export class RentalsService {
     if (q.placeId)
       qb.andWhere('(ss.id = :pid OR es.id = :pid)', { pid: q.placeId });
     if (q.updatedSince) {
-      qb.andWhere('COALESCE(r.updated_at, r.end_time, r.start_time) >= :us', {
+      qb.andWhere('COALESCE(r.end_time, r.start_time) >= :us', {
         us: q.updatedSince,
       });
     }
 
-    // --- cursor ---
+    // Cursor "<ISO>|<id>"
     if (q.cursor) {
       const [tsStr, lastId] = q.cursor.split('|');
       if (!tsStr || !lastId) {
@@ -214,25 +212,25 @@ export class RentalsService {
         );
       }
       const ts = new Date(tsStr);
-      if (isNaN(ts.getTime()))
+      if (isNaN(ts.getTime())) {
         throw new BadRequestException('Invalid cursor timestamp');
+      }
 
-      // Postgres row-wise comparison
-      qb.andWhere(
-        '(COALESCE(r.updated_at, r.end_time, r.start_time), r.id) > (:ts, :id)',
-        { ts, id: lastId },
-      );
+      qb.andWhere('(COALESCE(r.end_time, r.start_time), r.id) > (:ts, :id)', {
+        ts,
+        id: lastId,
+      });
     }
 
-    qb.orderBy('COALESCE(r.updated_at, r.end_time, r.start_time)', 'ASC')
+    qb.orderBy('COALESCE(r.end_time, r.start_time)', 'ASC')
       .addOrderBy('r.id', 'ASC')
       .limit(take);
 
-    let rows: any[] = [];
+    let rows: Array<Record<string, any>> = [];
     try {
       rows = await qb.getRawMany();
     } catch (e: any) {
-      // Fallback si la comparación por tuplas no estuviera disponible
+      // Fallback si la comparación por tuplas no está disponible
       if (q.cursor) {
         const [tsStr, lastId] = q.cursor.split('|');
         const ts = new Date(tsStr);
@@ -252,21 +250,18 @@ export class RentalsService {
                THEN ROUND(EXTRACT(EPOCH FROM (r.end_time - r.start_time)) / 60.0)::int 
                ELSE NULL 
              END AS duration_minutes`,
-            // 'r.distance_meters AS distance_meters',
-            'r.updated_at AS updated_at',
+            'COALESCE(r.end_time, r.start_time) AS sort_ts',
             'u.id AS user_id',
             'um.id AS umbrella_id',
             'ss.id AS start_station_id',
             'es.id AS end_station_id',
           ])
-          .where('COALESCE(r.updated_at, r.end_time, r.start_time) > :ts', {
-            ts,
-          })
+          .where('COALESCE(r.end_time, r.start_time) > :ts', { ts })
           .orWhere(
-            'COALESCE(r.updated_at, r.end_time, r.start_time) = :ts AND r.id > :id',
-            { ts, id: lastId },
+            'COALESCE(r.end_time, r.start_time) = :ts AND r.id > :rid',
+            { ts, rid: lastId }, // 👈 UN SOLO OBJETO con ambas claves
           )
-          .orderBy('COALESCE(r.updated_at, r.end_time, r.start_time)', 'ASC')
+          .orderBy('COALESCE(r.end_time, r.start_time)', 'ASC')
           .addOrderBy('r.id', 'ASC')
           .limit(take);
 
@@ -276,38 +271,34 @@ export class RentalsService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    // Ocultar sort_ts en la respuesta pública
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const data = rows.map(({ sort_ts, ...r }) => r);
+
     const last = rows[rows.length - 1];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const lastUpdated =
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      last?.updated_at ?? last?.end_time ?? last?.start_time ?? null;
-
-    const nextCursor = lastUpdated
-      ? `${new Date(lastUpdated).toISOString()}|${last.id}`
+    const lastSortTs =
+      last?.sort_ts ?? last?.end_time ?? last?.start_time ?? null;
+    const nextCursor = lastSortTs
+      ? `${new Date(lastSortTs).toISOString()}|${last.id}`
       : null;
 
-    return { data: rows, nextCursor };
+    return { data, nextCursor };
   }
 
   async getAuthTypeCounts(): Promise<{ nfc: number; qr: number }> {
     const rows = await this.rentalRepository
-      .createQueryBuilder('rental')
-      .select('rental.auth_type', 'auth_type')
+      .createQueryBuilder('r')
+      .select('r.auth_type', 'auth_type')
       .addSelect('COUNT(*)', 'count')
-      .groupBy('rental.auth_type')
+      .groupBy('r.auth_type')
       .getRawMany<{ auth_type: string; count: string }>();
 
     const out = { nfc: 0, qr: 0 };
     for (const r of rows) {
-      const at = (r.auth_type || '').toUpperCase();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      if (at === AuthType.NFC) out.nfc = parseInt(r.count, 10) || 0;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-      if (at === AuthType.QR) out.qr = parseInt(r.count, 10) || 0;
-      // si en DB está como string 'NFC'/'QR', también queda cubierto por comparación arriba
-      if (at === 'NFC') out.nfc = parseInt(r.count, 10) || out.nfc;
-      if (at === 'QR') out.qr = parseInt(r.count, 10) || out.qr;
+      const v = (r.auth_type ?? '').toString().toUpperCase();
+      if (v === 'NFC') out.nfc = parseInt(r.count, 10) || 0;
+      if (v === 'QR') out.qr = parseInt(r.count, 10) || 0;
     }
     return out;
   }
