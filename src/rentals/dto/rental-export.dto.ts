@@ -1,14 +1,54 @@
-// rentals-export.dto.ts
-import { IsOptional, IsInt, IsISO8601, IsString } from 'class-validator';
+// src/rentals/dto/rental-export.dto.ts
+import { Type } from 'class-transformer';
+import {
+  IsEnum,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
+import { RentalStatus } from '../../database/entities/rental.entity';
 
 export class RentalsExportDto {
-  @IsOptional() @IsISO8601() start?: string;
-  @IsOptional() @IsISO8601() end?: string;
-  @IsOptional() @IsString() status?: 'confirmed' | 'completed' | 'cancelled';
-  @IsOptional() @IsString() placeId?: string;
-  @IsOptional() @IsString() userId?: string;
-  @IsOptional() @IsISO8601() updatedSince?: string;
+  @IsOptional()
+  @IsISO8601()
+  @Type(() => Date)
+  start?: Date;
 
-  @IsOptional() @IsInt() limit?: number;
-  @IsOptional() @IsString() cursor?: string;
+  @IsOptional()
+  @IsISO8601()
+  @Type(() => Date)
+  end?: Date;
+
+  @IsOptional()
+  @IsISO8601()
+  @Type(() => Date)
+  updatedSince?: Date;
+
+  @IsOptional()
+  @IsEnum(RentalStatus)
+  status?: RentalStatus;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  placeId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  limit?: number;
+
+  // keyset: "<ISO8601>|<id-uuid>"
+  @IsOptional()
+  @IsString()
+  cursor?: string;
 }

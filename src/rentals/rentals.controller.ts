@@ -43,14 +43,13 @@ export class RentalsController {
     };
   }
 
+  // Estadísticas de métodos de autenticación (NFC vs QR)
   @Get('stats/auth-types')
   async getAuthTypeCounts() {
     return this.rentalsService.getAuthTypeCounts();
   }
 
-  // --- place specific routes BEFORE :id to avoid collisions ---
-
-  // /rentals/history/:user_id
+  // Colocar rutas específicas antes de :id para evitar colisiones
   @Get('history/:user_id')
   async getUserHistory(@Param('user_id') userId: string) {
     const history = await this.rentalsService.getUserHistory(userId);
@@ -65,16 +64,14 @@ export class RentalsController {
     }));
   }
 
-  // /rentals/export?start=...&end=...&status=...&userId=...&placeId=...&updatedSince=...&limit=...&cursor=...
+  // Export con filtros + cursor: /rentals/export?start=...&end=...&status=...&userId=...&placeId=...&updatedSince=...&limit=...&cursor=...
   @Get('export')
   async exportRentals(@Query() q: RentalsExportDto) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
     const limit = Math.min(q.limit ?? 5000, 10000);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
     return this.rentalsService.exportRentals({ ...q, limit });
   }
 
-  // /rentals?user_id=...&status=...
+  // Listado básico con filtros simples
   @Get()
   find(
     @Query('user_id') user_id?: string,
@@ -83,7 +80,7 @@ export class RentalsController {
     return this.rentalsService.find(user_id, status);
   }
 
-  // /rentals/:id  (kept last so it doesn't catch 'history' or 'export')
+  // Mantener al final para no capturar 'history' o 'export'
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.rentalsService.findOne(id);
