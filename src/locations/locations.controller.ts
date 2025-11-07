@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { LocationsService } from './locations.service';
 
@@ -11,8 +11,8 @@ export class LocationsController {
     return this.locationsService.create(createLocationDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.locationsService.findOne(id);
+  @Get()
+  findAll() {
+    return this.locationsService.findAll();
   }
 }

@@ -29,7 +29,7 @@ export class LocationsService {
     return this.locationRepository.save(newLocation);
   }
 
-  async findOne(id: string): Promise<Location> {
-    return this.locationRepository.findOne({ where: { id } });
+  async findAll(): Promise<Location[]> {
+    return this.locationRepository.find();
   }
 }
