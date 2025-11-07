@@ -10,6 +10,7 @@ import { Subscription } from './subscription.entity';
 import { Rental } from './rental.entity';
 import { PaymentMethod } from './payment-method.entity';
 import { FeatureLog } from './feature-log.entity';
+import { Location } from './location.entity';
 
 @Entity('users')
 export class User {
@@ -43,9 +44,18 @@ export class User {
   @OneToMany(() => FeatureLog, (log) => log.user)
   feature_logs: FeatureLog[];
 
-  @Column({type: 'decimal', precision: 10, scale: 2, default: 0.0,name: 'total_pedometer_km',})
+  @OneToMany(() => Location, (location) => location.user)
+  locations: Location[];
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0.0,
+    name: 'total_pedometer_km',
+  })
   total_pedometer_km: number;
-  
+
   @Column({ type: 'text', nullable: true })
   passwordResetTokenHash: string | null;
 

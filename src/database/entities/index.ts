@@ -9,7 +9,31 @@ export { Plan } from './plan.entity';
 export { Subscription } from './subscription.entity';
 export { PaymentMethod } from './payment-method.entity';
 export { FeatureLog } from './feature-log.entity';
-export { AppOpenLog } from './app-open-log.entity';
+import { AppOpenLog } from './app-open-log.entity';
+import { FeatureLog } from './feature-log.entity';
+import { PaymentMethod } from './payment-method.entity';
+import { Plan } from './plan.entity';
+import { Rental } from './rental.entity';
+import { Station } from './station.entity';
+import { Subscription } from './subscription.entity';
+import { Umbrella } from './umbrella.entity';
+import { User } from './user.entity';
+import { StationTag } from './station-tag.entity';
+import { Location } from './location.entity';
+
+export const entities = [
+  User,
+  Plan,
+  Subscription,
+  Station,
+  Rental,
+  Umbrella,
+  PaymentMethod,
+  AppOpenLog,
+  FeatureLog,
+  StationTag,
+  Location,
+];
 
 // Now you can import like this:
 // import { User, Station, Umbrella } from '../database/entities';

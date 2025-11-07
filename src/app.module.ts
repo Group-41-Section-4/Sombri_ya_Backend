@@ -15,6 +15,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { WeatherModule } from './weather/weather.module';
 import { AuthModule } from './auth/authentication.module';
 import { TagsModule } from './tags/tags.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { TagsModule } from './tags/tags.module';
     WeatherModule,
     AuthModule,
     TagsModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
