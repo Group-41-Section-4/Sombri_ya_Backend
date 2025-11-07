@@ -1,6 +1,14 @@
-import { Controller, Get, Query, Param } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
-import { DateRangeDto, TopFeaturesDto, BookingsFrequencyDto, RainProbabilityDto } from './dto/query-analytics.dto';
+import {
+  DateRangeDto,
+  TopFeaturesDto,
+  BookingsFrequencyDto,
+  RainProbabilityDto,
+  TimeBucketsDto,
+  PeaksDto,
+  TimeOfDayDto,
+} from './dto/query-analytics.dto';
 
 @Controller('analytics')
 export class AnalyticsController {
@@ -13,22 +21,36 @@ export class AnalyticsController {
 
   @Get('bookings/frequency')
   getBookingsFrequency(@Query() query: BookingsFrequencyDto) {
-    return this.analyticsService.getBookingsFrequency(query.start_date, query.end_date, query.group_by);
+    return this.analyticsService.getBookingsFrequency(
+      query.start_date,
+      query.end_date,
+      query.group_by,
+    );
   }
 
   @Get('heatmap/users')
   getUserHeatmap(@Query() query: DateRangeDto) {
-    return this.analyticsService.getUserHeatmap(query.start_date, query.end_date);
+    return this.analyticsService.getUserHeatmap(
+      query.start_date,
+      query.end_date,
+    );
   }
 
   @Get('heatmap/stations')
   getStationHeatmap(@Query() query: DateRangeDto) {
-    return this.analyticsService.getStationHeatmap(query.start_date, query.end_date);
+    return this.analyticsService.getStationHeatmap(
+      query.start_date,
+      query.end_date,
+    );
   }
 
   @Get('features/top')
   getTopFeatures(@Query() query: TopFeaturesDto) {
-    return this.analyticsService.getTopFeatures(query.start_date, query.end_date, Number(query.limit) || 5);
+    return this.analyticsService.getTopFeatures(
+      query.start_date,
+      query.end_date,
+      Number(query.limit) || 5,
+    );
   }
 
   @Get('features/nfc-vs-qr')
@@ -43,6 +65,24 @@ export class AnalyticsController {
 
   @Get('rain-probability')
   getRainProbability(@Query() query: RainProbabilityDto) {
-    return this.analyticsService.getRainProbability(Number(query.lat), Number(query.lon));
+    return this.analyticsService.getRainProbability(
+      Number(query.lat),
+      Number(query.lon),
+    );
+  }
+
+  @Get('rentals/time-series')
+  getRentalsTimeSeries(@Query() q: TimeBucketsDto) {
+    return this.analyticsService.getRentalsTimeSeries(q);
+  }
+
+  @Get('rentals/peaks')
+  getRentalsPeaks(@Query() q: PeaksDto) {
+    return this.analyticsService.getRentalsPeaks(q);
+  }
+
+  @Get('rentals/by-time-of-day')
+  getRentalsByTimeOfDay(@Query() q: TimeOfDayDto) {
+    return this.analyticsService.getRentalsByTimeOfDay(q);
   }
 }

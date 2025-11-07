@@ -8,15 +8,19 @@ import { FeatureLog } from '../database/entities/feature-log.entity';
 import { AppOpenLog } from '../database/entities/app-open-log.entity';
 import { WeatherService } from '../weather/weather.service';
 import { Subscription } from '../database/entities/subscription.entity';
+import { TimeBucketsDto } from './dto/query-analytics.dto';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
     @InjectRepository(Rental) private readonly rentalRepo: Repository<Rental>,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
-    @InjectRepository(FeatureLog) private readonly featureLogRepo: Repository<FeatureLog>,
-    @InjectRepository(AppOpenLog) private readonly appOpenLogRepo: Repository<AppOpenLog>,
-    @InjectRepository(Subscription) private readonly subscriptionRepo: Repository<Subscription>,
+    @InjectRepository(FeatureLog)
+    private readonly featureLogRepo: Repository<FeatureLog>,
+    @InjectRepository(AppOpenLog)
+    private readonly appOpenLogRepo: Repository<AppOpenLog>,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepo: Repository<Subscription>,
     private readonly weatherService: WeatherService,
     private readonly dataSource: DataSource,
   ) {}
@@ -37,7 +41,11 @@ export class AnalyticsService {
     return result[0];
   }
 
-  async getBookingsFrequency(start_date: string, end_date: string, group_by: string) {
+  async getBookingsFrequency(
+    start_date: string,
+    end_date: string,
+    group_by: string,
+  ) {
     const query = `
       SELECT
         date_trunc($3, r.start_time) AS period,
@@ -117,20 +125,25 @@ export class AnalyticsService {
     const qr_fails = parseInt(stats.qr_fails) || 0;
 
     return {
-        nfc: { uses: nfc_uses, fails: nfc_fails },
-        qr: { uses: qr_uses, fails: qr_fails },
-        nfc_failure_rate: nfc_uses + nfc_fails > 0 ? nfc_fails / (nfc_uses + nfc_fails) : 0,
-        qr_failure_rate: qr_uses + qr_fails > 0 ? qr_fails / (qr_uses + qr_fails) : 0,
+      nfc: { uses: nfc_uses, fails: nfc_fails },
+      qr: { uses: qr_uses, fails: qr_fails },
+      nfc_failure_rate:
+        nfc_uses + nfc_fails > 0 ? nfc_fails / (nfc_uses + nfc_fails) : 0,
+      qr_failure_rate:
+        qr_uses + qr_fails > 0 ? qr_fails / (qr_uses + qr_fails) : 0,
     };
   }
 
   async getBiometricUsage() {
     const total_users = await this.userRepo.count();
-    const biometric_enabled_count = await this.userRepo.count({ where: { biometric_enabled: true } });
+    const biometric_enabled_count = await this.userRepo.count({
+      where: { biometric_enabled: true },
+    });
     return {
       total_users,
       biometric_enabled_count,
-      percent: total_users > 0 ? (biometric_enabled_count / total_users) * 100 : 0,
+      percent:
+        total_users > 0 ? (biometric_enabled_count / total_users) * 100 : 0,
     };
   }
 
@@ -138,5 +151,120 @@ export class AnalyticsService {
     return this.weatherService.getRainProbability(lat, lon);
   }
 
-  // ... other methods like nfc-failure-timeline, savings, etc.
+  private bq6Filters(q: { station_id?: string; auth_type?: 'nfc' | 'qr' }) {
+    const where: string[] = ["r.status <> 'cancelled'"]; 
+    const params: Record<string, any> = {};
+    if (q.station_id) {
+      where.push('r.station_start_id = :station_id');
+      params.station_id = q.station_id;
+    }
+    if (q.auth_type) {
+      where.push('r.auth_type = :auth_type');
+      params.auth_type = q.auth_type;
+    }
+    return {
+      whereSql: where.length ? ' AND ' + where.join(' AND ') : '',
+      params,
+    };
+  }
+
+  async getRentalsTimeSeries(q: {
+    start_date: string;
+    end_date: string;
+    bucket_minutes?: string;
+    tz?: string;
+    station_id?: string;
+    auth_type?: 'nfc' | 'qr';
+  }): Promise<{ bucket_start: string; rentals: number }[]> {
+    const tz = q.tz ?? 'America/Bogota';
+    const bucket = Number(q.bucket_minutes ?? 15);
+    const { whereSql, params } = this.bq6Filters(q);
+
+    const sql = `
+      WITH rentals AS (
+        SELECT (r.start_time AT TIME ZONE :tz) AS local_ts
+        FROM rentals r
+        WHERE r.start_time >= :from::timestamptz
+          AND r.start_time <  :to::timestamptz
+          ${whereSql}
+      )
+      SELECT
+        to_timestamp(floor(extract(epoch FROM local_ts)/(:bucket*60))*(:bucket*60)) AT TIME ZONE :tz AS bucket_start,
+        count(*)::int AS rentals
+      FROM rentals
+      GROUP BY 1
+      ORDER BY 1;
+    `;
+
+    const rows = await this.dataSource.query(sql, {
+      ...params,
+      tz,
+      from: q.start_date,
+      to: q.end_date,
+      bucket,
+    });
+
+    return (rows as any[]).map((r) => ({
+      bucket_start: String(r.bucket_start),
+      rentals: Number(r.rentals),
+    }));
+  }
+
+  async getRentalsPeaks(q: {
+    start_date: string;
+    end_date: string;
+    bucket_minutes?: string;
+    tz?: string;
+    station_id?: string;
+    auth_type?: 'nfc' | 'qr';
+    top?: string;
+  }): Promise<{ bucket_start: string; rentals: number }[]> {
+    const top = Number(q.top ?? 10);
+    const rows = await this.getRentalsTimeSeries(q);
+    return [...rows].sort((a, b) => b.rentals - a.rentals).slice(0, top);
+  }
+
+  async getRentalsByTimeOfDay(q: {
+    start_date: string;
+    end_date: string;
+    tz?: string;
+    split_by_weekday?: '1' | '0';
+    station_id?: string;
+    auth_type?: 'nfc' | 'qr';
+  }): Promise<
+    { hour_of_day: number; weekday: number | null; rentals: number }[]
+  > {
+    const tz = q.tz ?? 'America/Bogota';
+    const split = q.split_by_weekday === '1';
+    const { whereSql, params } = this.bq6Filters(q);
+
+    const sql = `
+      SELECT
+        (EXTRACT(HOUR FROM r.start_time AT TIME ZONE :tz))::int AS hour_of_day,
+        ${split ? '((EXTRACT(DOW FROM r.start_time AT TIME ZONE :tz)::int + 6) % 7) AS weekday,' : 'NULL::int AS weekday,'}
+        count(*)::int AS rentals
+      FROM rentals r
+      WHERE r.start_time >= :from::timestamptz
+        AND r.start_time <  :to::timestamptz
+        ${whereSql}
+      GROUP BY 1, 2
+      ORDER BY 2 NULLS FIRST, 1;
+    `;
+
+    const rows = await this.dataSource.query(sql, {
+      ...params,
+      tz,
+      from: q.start_date,
+      to: q.end_date,
+    });
+
+    return (rows as any[]).map((r) => ({
+      hour_of_day: Number(r.hour_of_day),
+      weekday:
+        r.weekday === null || r.weekday === undefined
+          ? null
+          : Number(r.weekday),
+      rentals: Number(r.rentals),
+    }));
+  }
 }
