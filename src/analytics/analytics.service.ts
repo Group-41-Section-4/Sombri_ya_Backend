@@ -151,21 +151,26 @@ export class AnalyticsService {
     return this.weatherService.getRainProbability(lat, lon);
   }
 
-  private bq6Filters(q: { station_id?: string; auth_type?: 'nfc' | 'qr' }) {
-    const where: string[] = ["r.status <> 'cancelled'"]; 
-    const params: Record<string, any> = {};
+  // Filtros comunes en modo POSICIONAL (para Postgres $1, $2, ...)
+  private bq6FiltersPositional(
+    q: { station_id?: string; auth_type?: 'nfc' | 'qr' },
+    startIndex: number, // desde qué $N arrancan los filtros (según los params fijos)
+  ) {
+    const where: string[] = ["r.status <> 'cancelled'"]; // sin params
+    const params: any[] = [];
+    let i = startIndex;
+
     if (q.station_id) {
-      where.push('r.station_start_id = :station_id');
-      params.station_id = q.station_id;
+      where.push(`r.station_start_id = $${i++}`);
+      params.push(q.station_id);
     }
     if (q.auth_type) {
-      where.push('r.auth_type = :auth_type');
-      params.auth_type = q.auth_type;
+      where.push(`r.auth_type = $${i++}`);
+      params.push(q.auth_type);
     }
-    return {
-      whereSql: where.length ? ' AND ' + where.join(' AND ') : '',
-      params,
-    };
+
+    const whereSql = where.length ? ' AND ' + where.join(' AND ') : '';
+    return { whereSql, params, nextIndex: i };
   }
 
   async getRentalsTimeSeries(q: {
@@ -178,33 +183,27 @@ export class AnalyticsService {
   }): Promise<{ bucket_start: string; rentals: number }[]> {
     const tz = q.tz ?? 'America/Bogota';
     const bucket = Number(q.bucket_minutes ?? 15);
-    const { whereSql, params } = this.bq6Filters(q);
+
+    const { whereSql, params: filterParams } = this.bq6FiltersPositional(q, 5);
 
     const sql = `
       WITH rentals AS (
-        SELECT (r.start_time AT TIME ZONE :tz) AS local_ts
+        SELECT (r.start_time AT TIME ZONE $1) AS local_ts
         FROM rentals r
-        WHERE r.start_time >= :from::timestamptz
-          AND r.start_time <  :to::timestamptz
+        WHERE r.start_time >= $2::timestamptz
+          AND r.start_time <  $3::timestamptz
           ${whereSql}
       )
       SELECT
-        to_timestamp(floor(extract(epoch FROM local_ts)/(:bucket*60))*(:bucket*60)) AT TIME ZONE :tz AS bucket_start,
+        to_timestamp(floor(extract(epoch FROM local_ts)/($4::int*60))*($4::int*60)) AT TIME ZONE $1 AS bucket_start,
         count(*)::int AS rentals
       FROM rentals
       GROUP BY 1
       ORDER BY 1;
     `;
 
-    const rows = await this.dataSource.query(sql, {
-      ...params,
-      tz,
-      from: q.start_date,
-      to: q.end_date,
-      bucket,
-    });
-
-    return (rows as any[]).map((r) => ({
+    const rows = await this.dataSource.query(sql, [tz, q.start_date, q.end_date, bucket, ...filterParams]);
+    return (rows as any[]).map(r => ({
       bucket_start: String(r.bucket_start),
       rentals: Number(r.rentals),
     }));
@@ -231,40 +230,34 @@ export class AnalyticsService {
     split_by_weekday?: '1' | '0';
     station_id?: string;
     auth_type?: 'nfc' | 'qr';
-  }): Promise<
-    { hour_of_day: number; weekday: number | null; rentals: number }[]
-  > {
+  }): Promise<{ hour_of_day: number; weekday: number | null; rentals: number }[]> {
     const tz = q.tz ?? 'America/Bogota';
     const split = q.split_by_weekday === '1';
-    const { whereSql, params } = this.bq6Filters(q);
+
+    // $1=tz, $2=from, $3=to  → filtros arrancan en $4
+    const { whereSql, params: filterParams } = this.bq6FiltersPositional(q, 4);
 
     const sql = `
       SELECT
-        (EXTRACT(HOUR FROM r.start_time AT TIME ZONE :tz))::int AS hour_of_day,
-        ${split ? '((EXTRACT(DOW FROM r.start_time AT TIME ZONE :tz)::int + 6) % 7) AS weekday,' : 'NULL::int AS weekday,'}
+        (EXTRACT(HOUR FROM r.start_time AT TIME ZONE $1))::int AS hour_of_day,
+        ${split
+          ? "((EXTRACT(DOW FROM r.start_time AT TIME ZONE $1)::int + 6) % 7) AS weekday,"
+          : "NULL::int AS weekday,"}
         count(*)::int AS rentals
       FROM rentals r
-      WHERE r.start_time >= :from::timestamptz
-        AND r.start_time <  :to::timestamptz
+      WHERE r.start_time >= $2::timestamptz
+        AND r.start_time <  $3::timestamptz
         ${whereSql}
       GROUP BY 1, 2
       ORDER BY 2 NULLS FIRST, 1;
     `;
 
-    const rows = await this.dataSource.query(sql, {
-      ...params,
-      tz,
-      from: q.start_date,
-      to: q.end_date,
-    });
-
-    return (rows as any[]).map((r) => ({
+    const rows = await this.dataSource.query(sql, [tz, q.start_date, q.end_date, ...filterParams]);
+    return (rows as any[]).map(r => ({
       hour_of_day: Number(r.hour_of_day),
-      weekday:
-        r.weekday === null || r.weekday === undefined
-          ? null
-          : Number(r.weekday),
+      weekday: r.weekday === null || r.weekday === undefined ? null : Number(r.weekday),
       rentals: Number(r.rentals),
     }));
   }
+
 }
