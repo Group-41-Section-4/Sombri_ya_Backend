@@ -77,17 +77,12 @@ export class UsersController {
   async remove(
     @Param('id') id: string,
     @Query('hard') hard?: string,
-    @Request() req?: any,
   ): Promise<void> {
     const isHard = (hard ?? '').toLowerCase() === 'true';
     if (isHard) {
       await this.usersService.hardDelete(id);
     } else {
-      await this.usersService.softDelete(
-        id,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-        req?.user?.id || req?.user?.userId,
-      );
+      await this.usersService.softDelete(id);
     }
   }
 }

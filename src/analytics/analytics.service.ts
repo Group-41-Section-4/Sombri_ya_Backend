@@ -2,13 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Rental } from '../database/entities/rental.entity';
-import { Station } from '../database/entities/station.entity';
 import { User } from '../database/entities/user.entity';
 import { FeatureLog } from '../database/entities/feature-log.entity';
 import { AppOpenLog } from '../database/entities/app-open-log.entity';
 import { WeatherService } from '../weather/weather.service';
 import { Subscription } from '../database/entities/subscription.entity';
-import { TimeBucketsDto } from './dto/query-analytics.dto';
 
 @Injectable()
 export class AnalyticsService {
@@ -260,4 +258,27 @@ export class AnalyticsService {
     }));
   }
 
+  /**
+   * Retorna estadísticas de usuarios activos vs eliminados (soft delete)
+   */
+  async getUsersStatus(): Promise<{
+    active_users: number;
+    deleted_users: number;
+    total_users: number;
+  }> {
+    // Contar todos los usuarios (incluyendo eliminados)
+    const totalUsers = await this.userRepo.count({ withDeleted: true });
+
+    // Contar usuarios activos (deleted_at IS NULL)
+    const activeUsers = await this.userRepo.count();
+
+    // Calcular usuarios eliminados
+    const deletedUsers = totalUsers - activeUsers;
+
+    return {
+      active_users: activeUsers,
+      deleted_users: deletedUsers,
+      total_users: totalUsers,
+    };
+  }
 }

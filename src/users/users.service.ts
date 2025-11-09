@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, DataSource } from 'typeorm';
@@ -62,15 +61,15 @@ export class UsersService {
    * Requiere que la entidad User tenga @DeleteDateColumn (p.ej. "deleted_at").
    * Evita que el actor se borre a sí mismo si pasas actorId.
    */
-  async softDelete(id: string, actorId?: string): Promise<void> {
+  async softDelete(id: string): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const user = await this.findOne(id);
 
-    if (actorId && actorId === id) {
-      throw new ForbiddenException(
-        'No puedes eliminar tu propia cuenta desde este endpoint.',
-      );
-    }
+    // if (actorId && actorId === id) {
+    //   throw new ForbiddenException(
+    //     'No puedes eliminar tu propia cuenta desde este endpoint.',
+    //   );
+    // }
 
     // Si no hay columna de soft delete, hacemos fallback seguro.
     const hasSoftDeleteColumn = this.userRepository.metadata.columns.some(

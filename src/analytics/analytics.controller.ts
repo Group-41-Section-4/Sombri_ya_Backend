@@ -85,4 +85,9 @@ export class AnalyticsController {
   getRentalsByTimeOfDay(@Query() q: TimeOfDayDto) {
     return this.analyticsService.getRentalsByTimeOfDay(q);
   }
+
+  @Get('users/status')
+  getUsersStatus() {
+    return this.analyticsService.getUsersStatus();
+  }
 }
