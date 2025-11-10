@@ -180,29 +180,68 @@ export class AnalyticsService {
     tz?: string;
     station_id?: string;
     auth_type?: 'nfc' | 'qr';
+    fill_gaps?: '1' | '0';
   }): Promise<{ bucket_start: string; rentals: number }[]> {
     const tz = q.tz ?? 'America/Bogota';
     const bucket = Number(q.bucket_minutes ?? 15);
+    const fill = q.fill_gaps === '1';
 
+    // filtros arrancan en $5
     const { whereSql, params: filterParams } = this.bq6FiltersPositional(q, 5);
 
-    const sql = `
-      WITH rentals AS (
-        SELECT (r.start_time AT TIME ZONE $1) AS local_ts
+    if (!fill) {
+      // VERSIÓN SIN GAP-FILL (la tuya original)
+      const sql = `
+        WITH rentals AS (
+          SELECT (r.start_time AT TIME ZONE $1) AS local_ts
+          FROM rentals r
+          WHERE r.start_time >= $2::timestamptz
+            AND r.start_time <  $3::timestamptz
+            ${whereSql}
+        )
+        SELECT
+          to_timestamp(floor(extract(epoch FROM local_ts)/($4::int*60))*($4::int*60)) AT TIME ZONE $1 AS bucket_start,
+          count(*)::int AS rentals
+        FROM rentals
+        GROUP BY 1
+        ORDER BY 1;
+      `;
+      const rows = await this.dataSource.query(sql, [tz, q.start_date, q.end_date, bucket, ...filterParams]);
+      return (rows as any[]).map(r => ({
+        bucket_start: String(r.bucket_start),
+        rentals: Number(r.rentals),
+      }));
+    }
+
+    // VERSIÓN CON GAP-FILL (rellena con 0)
+    const sqlGapFill = `
+      WITH series AS (
+        SELECT gs AS bucket_start
+        FROM generate_series(
+          $2::timestamptz,
+          $3::timestamptz - ($4::int || ' minutes')::interval,
+          ($4::int || ' minutes')::interval
+        ) AS gs
+      ),
+      counts AS (
+        SELECT
+          to_timestamp(
+            floor(extract(epoch FROM (r.start_time AT TIME ZONE $1))/($4::int*60))*($4::int*60)
+          ) AT TIME ZONE $1 AS bucket_start,
+          count(*)::int AS rentals
         FROM rentals r
         WHERE r.start_time >= $2::timestamptz
           AND r.start_time <  $3::timestamptz
           ${whereSql}
+        GROUP BY 1
       )
-      SELECT
-        to_timestamp(floor(extract(epoch FROM local_ts)/($4::int*60))*($4::int*60)) AT TIME ZONE $1 AS bucket_start,
-        count(*)::int AS rentals
-      FROM rentals
-      GROUP BY 1
-      ORDER BY 1;
+      SELECT s.bucket_start, COALESCE(c.rentals, 0)::int AS rentals
+      FROM series s
+      LEFT JOIN counts c USING (bucket_start)
+      ORDER BY s.bucket_start;
     `;
 
-    const rows = await this.dataSource.query(sql, [tz, q.start_date, q.end_date, bucket, ...filterParams]);
+    const rows = await this.dataSource.query(sqlGapFill, [tz, q.start_date, q.end_date, bucket, ...filterParams]);
     return (rows as any[]).map(r => ({
       bucket_start: String(r.bucket_start),
       rentals: Number(r.rentals),
