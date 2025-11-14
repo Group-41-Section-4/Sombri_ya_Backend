@@ -161,31 +161,10 @@ export class UsersService {
   async getTotalDistanceKm(
     userId: string,
   ): Promise<{ totalDistanceKm: number }> {
-    await this.findOne(userId);
+    const user = await this.findOne(userId); //
+    const totalDistanceKm = Number(user.total_pedometer_km) || 0.0;
 
-    const rentals = await this.rentalRepository.find({
-      where: {
-        user: { id: userId },
-        status: RentalStatus.COMPLETED as RentalStatus,
-      },
-      relations: ['start_station', 'end_station'],
-    });
-
-    let totalDistanceKm = 0;
-
-    for (const rental of rentals) {
-      if (rental.start_station && rental.end_station) {
-        const distance = this.calculateHaversineDistance(
-          rental.start_station.latitude,
-          rental.start_station.longitude,
-          rental.end_station.latitude,
-          rental.end_station.longitude,
-        );
-        totalDistanceKm += distance;
-      }
-    }
-
-    return { totalDistanceKm: Math.round(totalDistanceKm * 100) / 100 };
+    return { totalDistanceKm: totalDistanceKm };
   }
 
   async addPedometerDistance(
