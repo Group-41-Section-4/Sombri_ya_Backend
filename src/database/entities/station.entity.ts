@@ -50,4 +50,10 @@ export class Station {
 
   @OneToMany(() => StationTag, (tag) => tag.station)
   tags: StationTag[];
+
+  @Column({
+    type: 'bytea',
+    nullable: true,
+  })
+  image?: Buffer;
 }

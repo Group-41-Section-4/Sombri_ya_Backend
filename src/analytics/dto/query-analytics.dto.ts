@@ -44,6 +44,12 @@ export class TimeBucketsDto extends DateRangeDto {
 
   @IsOptional()
   auth_type?: 'nfc' | 'qr';
+
+  @IsOptional()
+  station_id?: string;
+
+  @IsOptional()
+  fill_gaps?: '1' | '0';
 }
 
 export class PeaksDto extends TimeBucketsDto {

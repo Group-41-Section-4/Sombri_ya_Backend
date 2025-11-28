@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -41,6 +42,10 @@ export class StationsService {
     return this.stationRepository.save(station);
   }
 
+  async findAll(): Promise<Station[]> {
+    return this.stationRepository.find();
+  }
+
   async findNearby(query: QueryStationDto): Promise<StationResponseDto[]> {
     const { latitude, longitude, radius_m = 1000, page = 1 } = query;
     const radiusInMeters = Number(radius_m);
@@ -53,6 +58,7 @@ export class StationsService {
       id: string;
       placeName: string;
       description: string;
+      imageUrl?: string;
       latitude: number;
       longitude: number;
       distanceMeters: number | string;
@@ -66,6 +72,7 @@ export class StationsService {
         'station.id AS id',
         'station.place_name AS "placeName"',
         'station.description AS description',
+        'station.image_url AS "imageUrl"',
         'station.latitude AS latitude',
         'station.longitude AS longitude',
         `ST_Distance(station.location, ${userLocation}) AS "distanceMeters"`,
@@ -175,6 +182,25 @@ export class StationsService {
     });
 
     return this.stationTagRepository.save(stationTag);
+  }
+
+  async updateImage(
+    stationId: string,
+    file: Express.Multer.File,
+  ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (!file?.buffer || !Buffer.isBuffer(file.buffer)) {
+      throw new BadRequestException('Invalid image file');
+    }
+
+    const station = await this.stationRepository.findOneBy({ id: stationId });
+    if (!station) {
+      throw new NotFoundException('Station not found');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    station.image = file.buffer;
+    await this.stationRepository.save(station);
   }
 
   @Transactional()
