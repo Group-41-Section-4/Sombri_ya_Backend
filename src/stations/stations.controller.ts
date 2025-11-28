@@ -19,6 +19,8 @@ import { CreateStationTagDto } from './dto/create-station-tag.dto';
 import { StationTag } from '../database/entities/station-tag.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import express from 'express';
+import { Res, NotFoundException } from '@nestjs/common';
 
 @Controller('stations')
 export class StationsController {
@@ -86,6 +88,17 @@ export class StationsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.stationsService.updateImage(id, file);
+  }
+  @Get(':id/image')
+  async getImage(@Param('id') id: string, @Res() res: express.Response) {
+    const station = await this.stationsService.findOne(id);
+
+    if (!station.image) {
+      throw new NotFoundException(`Image for station with ID ${id} not found`);
+    }
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(station.image);
   }
 
   @Delete()
