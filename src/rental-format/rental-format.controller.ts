@@ -47,7 +47,7 @@ export class RentalFormatController {
       someInt: r.someInt,
       description: r.description,
       rentalId: r.rentalId,
-      imageBase64: r.imageData.toString('base64'),
+      imageBase64: r.imageData ? r.imageData.toString('base64') : null,
     }));
   }
 }

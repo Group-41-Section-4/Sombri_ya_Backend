@@ -12,13 +12,10 @@ export class RentalFormatService {
     private readonly rentalFormatRepo: Repository<RentalFormat>,
   ) {}
 
-  async create(
-    dto: CreateRentalFormatDto,
-    imageBuffer: Buffer,
-  ): Promise<RentalFormat> {
+  async create(dto: CreateRentalFormatDto, imageBuffer: Buffer | null) {
     const entity = this.rentalFormatRepo.create({
       someInt: dto.someInt,
-      description: dto.description,
+      description: dto.description ?? null,
       rentalId: dto.rentalId,
       imageData: imageBuffer,
     });
