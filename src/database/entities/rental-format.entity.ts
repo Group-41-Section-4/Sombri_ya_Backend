@@ -6,15 +6,14 @@ export class RentalFormat {
   id: string;
 
   @Column({ type: 'int' })
-  someInt: number; // el entero que quieras guardar
+  someInt: number; // rating
 
-  @Column({ type: 'varchar', length: 250 })
-  description: string; // varchar(250)
+  @Column({ type: 'varchar', length: 250, nullable: true })
+  description?: string | null;
 
-  @Column({ type: 'bytea' })
-  imageData: Buffer; // bytes de la imagen
+  @Column({ type: 'bytea', nullable: true })
+  imageData?: Buffer | null;
 
-  // Solo guardamos el id de la renta, sin relación TypeORM
   @Column({ type: 'uuid' })
   rentalId: string;
 }
