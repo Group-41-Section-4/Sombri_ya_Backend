@@ -4,7 +4,7 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "assets": [
-      { "include": "auth/templates/**/*", "outDir": "dist/auth/templates" }
+      { "include": "auth/templates/*", "outDir": "dist/auth/templates" }
     ],
     "watchAssets": true,
     "deleteOutDir": true

@@ -16,6 +16,7 @@ import { WeatherModule } from './weather/weather.module';
 import { AuthModule } from './auth/authentication.module';
 import { TagsModule } from './tags/tags.module';
 import { LocationsModule } from './locations/locations.module';
+import { RentalFormatModule } from './rental-format/rental-format.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { LocationsModule } from './locations/locations.module';
     AuthModule,
     TagsModule,
     LocationsModule,
+    RentalFormatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
