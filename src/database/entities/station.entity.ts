@@ -50,4 +50,7 @@ export class Station {
 
   @OneToMany(() => StationTag, (tag) => tag.station)
   tags: StationTag[];
+
+  @Column({ name: 'image_url', type: 'text', nullable: true })
+  imageUrl?: string;
 }
