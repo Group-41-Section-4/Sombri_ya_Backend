@@ -24,6 +24,11 @@ export class StationsController {
     return this.stationsService.create(createStationDto);
   }
 
+  @Get('all')
+  findAll() {
+    return this.stationsService.findAll();
+  }
+
   @Get()
   findNearby(@Body() queryStationDto: QueryStationDto) {
     return this.stationsService.findNearby(queryStationDto);

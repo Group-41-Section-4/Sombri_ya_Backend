@@ -41,6 +41,10 @@ export class StationsService {
     return this.stationRepository.save(station);
   }
 
+  async findAll(): Promise<Station[]> {
+    return this.stationRepository.find();
+  }
+
   async findNearby(query: QueryStationDto): Promise<StationResponseDto[]> {
     const { latitude, longitude, radius_m = 1000, page = 1 } = query;
     const radiusInMeters = Number(radius_m);
