@@ -58,7 +58,6 @@ export class StationsService {
       id: string;
       placeName: string;
       description: string;
-      imageUrl?: string;
       latitude: number;
       longitude: number;
       distanceMeters: number | string;
@@ -72,7 +71,6 @@ export class StationsService {
         'station.id AS id',
         'station.place_name AS "placeName"',
         'station.description AS description',
-        'station.image_url AS "imageUrl"',
         'station.latitude AS latitude',
         'station.longitude AS longitude',
         `ST_Distance(station.location, ${userLocation}) AS "distanceMeters"`,
