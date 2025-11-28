@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -181,6 +182,25 @@ export class StationsService {
     });
 
     return this.stationTagRepository.save(stationTag);
+  }
+
+  async updateImage(
+    stationId: string,
+    file: Express.Multer.File,
+  ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (!file?.buffer || !Buffer.isBuffer(file.buffer)) {
+      throw new BadRequestException('Invalid image file');
+    }
+
+    const station = await this.stationRepository.findOneBy({ id: stationId });
+    if (!station) {
+      throw new NotFoundException('Station not found');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    station.image = file.buffer;
+    await this.stationRepository.save(station);
   }
 
   @Transactional()

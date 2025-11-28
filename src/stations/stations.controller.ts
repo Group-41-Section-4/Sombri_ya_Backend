@@ -7,6 +7,9 @@ import {
   Post,
   HttpCode,
   HttpStatus,
+  Patch,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { StationsService } from './stations.service';
 import { CreateStationDto } from './dto/create-station.dto';
@@ -14,6 +17,8 @@ import { QueryStationDto } from './dto/query-station.dto';
 import { AddUmbrellaDto } from '../umbrellas/dto/add-umbrella.dto';
 import { CreateStationTagDto } from './dto/create-station-tag.dto';
 import { StationTag } from '../database/entities/station-tag.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @Controller('stations')
 export class StationsController {
@@ -68,6 +73,19 @@ export class StationsController {
       createStationTagDto,
     );
     return tag;
+  }
+
+  @Patch(':id/image')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: memoryStorage(),
+    }),
+  )
+  updateImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.stationsService.updateImage(id, file);
   }
 
   @Delete()
