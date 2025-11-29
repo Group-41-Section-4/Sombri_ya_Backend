@@ -304,7 +304,7 @@ export class RentalsService {
 
     const rentals = await this.rentalRepository.find({
       where,
-      relations: ['user', 'umbrella', 'startStation', 'endStation'],
+      relations: ['startStation', 'endStation'],
     });
 
     const rows = rentals.map((rental) => ({
