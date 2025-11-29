@@ -61,6 +61,10 @@ export class AuthService {
     return this.userRepo.findOne({ where: { email } });
   }
 
+  async findUserById(id: string) {
+    return this.userRepo.findOne({ where: { id } });
+  }
+
   async registerUser(
     email: string,
     name: string,
@@ -151,5 +155,20 @@ export class AuthService {
 
     await this.userRepo.save(user);
     return { ok: true };
+  }
+
+  sanitizeUser(user: User | null) {
+    if (!user) {
+      return null;
+    }
+
+    const {
+      password,
+      passwordResetTokenHash,
+      passwordResetExpires,
+      ...safe
+    } = user;
+
+    return safe;
   }
 }

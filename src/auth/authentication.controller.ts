@@ -8,6 +8,7 @@ import {
   UseGuards,
   Get,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './authentication.service';
@@ -82,9 +83,16 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  getProfile(@Request() req: any) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-    return req.user; // aquí el JWT guard mete el user.id, email, name, etc.
+  async getProfile(@Request() req: any) {
+    const payload = req.user as { sub?: string } | undefined;
+    const userId = payload?.sub;
+
+    if (!userId) {
+      throw new BadRequestException('User id not found in token');
+    }
+
+    const user = await this.authService.findUserById(userId);
+    return this.authService.sanitizeUser(user);
   }
 
   @Post('password/forgot')
