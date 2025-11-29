@@ -26,8 +26,14 @@ export class PasswordStrategy implements AuthStrategy {
       throw new Error('Credenciales inválidas');
     }
 
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    };
+
     // Firmar JWT
-    const token = this.jwt.sign({ sub: user.id, email: user.email });
+    const token = this.jwt.sign(payload);
 
     return {
       accessToken: token,
