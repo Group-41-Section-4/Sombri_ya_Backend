@@ -72,6 +72,11 @@ export class RentalsController {
     return this.rentalsService.exportRentals({ ...q, limit });
   }
 
+  @Get('export_rent')
+  async export(@Query('id') id?: string): Promise<RentalExportRowDto[]> {
+    return this.rentalsService.export(id);
+  }
+
   // Listado básico con filtros simples
   @Get()
   find(
@@ -96,8 +101,5 @@ export class RentalsController {
       updatedUmbrellas: result.updatedUmbrellas,
     };
   }
-  @Get('export_rent')
-  async export(@Query('id') id?: string): Promise<RentalExportRowDto[]> {
-    return this.rentalsService.export(id);
-  }
+
 }
