@@ -1,6 +1,8 @@
+import { Type } from 'class-transformer';
 import { IsInt, IsString, MaxLength, IsUUID } from 'class-validator';
 
 export class CreateRentalFormatDto {
+  @Type(() => Number)
   @IsInt()
   someInt: number;
 
