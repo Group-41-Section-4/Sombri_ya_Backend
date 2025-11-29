@@ -144,9 +144,15 @@ export class RentalsService {
   }
 
   async findOne(id: string): Promise<Rental> {
-    const rental = await this.rentalRepository.findOneBy({ id });
-    if (!rental)
+    const rental = await this.rentalRepository.findOne({
+      where: { id },
+      relations: ['start_station', 'end_station', 'umbrella', 'user'],
+    });
+
+    if (!rental) {
       throw new NotFoundException(`Rental with ID "${id}" not found`);
+    }
+
     return rental;
   }
 
