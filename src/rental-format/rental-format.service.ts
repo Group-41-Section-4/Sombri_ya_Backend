@@ -17,7 +17,7 @@ export class RentalFormatService {
       someInt: dto.someInt,
       description: dto.description ?? null,
       rentalId: dto.rentalId,
-      imageData: imageBuffer,
+      imageData: imageBuffer ?? null,
     });
 
     return this.rentalFormatRepo.save(entity);
