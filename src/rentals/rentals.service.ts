@@ -19,9 +19,12 @@ import { EndRentalDto } from './dto/end-rental.dto';
 import { Station } from 'src/database/entities/station.entity';
 import { PaymentMethod, User } from 'src/database/entities';
 import { RentalsExportDto } from './dto/rental-export.dto';
+import { plainToInstance } from 'class-transformer';
+import { RentalExportRowDto } from './dto/rental-export-row.dto';
 
 @Injectable()
 export class RentalsService {
+  rentalRepo: any;
   constructor(
     @InjectRepository(Rental)
     private readonly rentalRepository: Repository<Rental>,
@@ -290,6 +293,34 @@ export class RentalsService {
       : null;
 
     return { data, nextCursor };
+  }
+
+  async export(rentalId?: string): Promise<RentalExportRowDto[]> {
+    const where: Partial<Rental> = {};
+
+    if (rentalId) {
+      where.id = rentalId;
+    }
+
+    const rentals = await this.rentalRepository.find({
+      where,
+      relations: ['user', 'umbrella', 'startStation', 'endStation'],
+    });
+
+    const rows = rentals.map((rental) => ({
+      id: rental.id,
+      startTime: rental.start_time ?? null,
+      endTime: rental.end_time ?? null,
+      status: rental.status,
+      durationMinutes: rental.duration_minutes ?? null,
+      distanceMeters: rental.distance_meters ?? null,
+      startStationName: rental.start_station?.place_name ?? null,
+      endStationName: rental.end_station?.place_name ?? null,
+    }));
+
+    return plainToInstance(RentalExportRowDto, rows, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async getAuthTypeCounts(): Promise<{ nfc: number; qr: number }> {

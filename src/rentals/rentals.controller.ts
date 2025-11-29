@@ -14,6 +14,7 @@ import { StartRentalDto } from './dto/start-rental.dto';
 import { EndRentalDto } from './dto/end-rental.dto';
 import { RentalStatus } from '../database/entities/rental.entity';
 import { RentalsExportDto } from './dto/rental-export.dto';
+import { RentalExportRowDto } from './dto/rental-export-row.dto';
 
 @Controller('rentals')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -94,5 +95,9 @@ export class RentalsController {
       deletedCount: result.deletedCount,
       updatedUmbrellas: result.updatedUmbrellas,
     };
+  }
+  @Get('export')
+  async export(@Query('id') id?: string): Promise<RentalExportRowDto[]> {
+    return this.rentalsService.export(id);
   }
 }
