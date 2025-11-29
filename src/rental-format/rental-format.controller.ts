@@ -1,4 +1,3 @@
-// src/rental-format/rental-format.controller.ts
 import {
   Controller,
   Get,
@@ -7,7 +6,6 @@ import {
   Body,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
@@ -21,20 +19,19 @@ export class RentalFormatController {
   @Post()
   @UseInterceptors(
     FileInterceptor('image', {
+      // deja el archivo en file.buffer
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-      storage: memoryStorage(), // deja el archivo en file.buffer
+      storage: memoryStorage(),
       limits: {
         fileSize: 5 * 1024 * 1024, // 5MB por ejemplo
       },
     }),
   )
-  async create(@Body() dto: CreateRentalFormatDto, @UploadedFile() file: any) {
-    if (!file) {
-      throw new BadRequestException('Image file is required');
-    }
+  async create(@Body() dto: CreateRentalFormatDto, @UploadedFile() file?: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const imageBuffer = file ? file.buffer : null;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    return this.rentalFormatService.create(dto, file.buffer);
+    return this.rentalFormatService.create(dto, imageBuffer);
   }
 
   @Get('rental/:rentalId')
