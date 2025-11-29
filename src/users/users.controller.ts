@@ -98,39 +98,59 @@ export class UsersController {
     FileInterceptor('image', {
       storage: diskStorage({
         destination: './uploads/profile',
-        filename: (req, file, cb) => {
+        filename: (req: any, file, cb) => {
           const uniqueSuffix = Date.now();
           const ext = extname(file.originalname);
-          cb(null, `${req.user.id}-${uniqueSuffix}${ext}`);
+
+          // userId puede venir como id o userId según tu estrategia JWT
+          const user = req.user as { id?: string; userId?: string } | undefined;
+          const userId = user?.id ?? user?.userId ?? 'unknown';
+
+          cb(null, `${userId}-${uniqueSuffix}${ext}`);
         },
       }),
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
   async uploadProfileImage(
-    @Request() req,
+    @Request() req: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('No image file uploaded');
     }
+
     const relativeUrl = `/uploads/profile/${file.filename}`;
-    const user = await this.usersService.updateProfileImage(
-      req.user.id,
+    const user = req.user as { id?: string; userId?: string } | undefined;
+    const userId = user?.id ?? user?.userId;
+
+    if (!userId) {
+      throw new BadRequestException('User not found in request');
+    }
+
+    const updated = await this.usersService.updateProfileImage(
+      userId,
       relativeUrl,
     );
-    return { profileImageUrl: user.profileImageUrl };
+
+    return { profileImageUrl: updated.profileImageUrl };
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete('me')
   @HttpCode(204)
   async removeMe(
-    @Request() req,
+    @Request() req: any,
     @Query('hard') hard?: string,
   ): Promise<void> {
     const isHard = (hard ?? '').toLowerCase() === 'true';
-    const id = req.user.id as string;
+    const user = req.user as { id?: string; userId?: string } | undefined;
+    const id = user?.id ?? user?.userId;
+
+    if (!id) {
+      throw new BadRequestException('User not found in request');
+    }
+
     if (isHard) {
       await this.usersService.hardDelete(id);
     } else {
