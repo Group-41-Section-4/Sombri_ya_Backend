@@ -3,27 +3,27 @@ import { Expose } from 'class-transformer';
 import { RentalStatus } from '../../database/entities/rental.entity';
 
 export class RentalExportRowDto {
-  @Expose({ name: 'rental_id' })
+  @Expose()
   id: string;
 
-  @Expose({ name: 'start_time' })
+  @Expose()
   startTime: Date;
 
-  @Expose({ name: 'end_time' })
+  @Expose()
   endTime: Date;
 
   @Expose()
   status: RentalStatus;
 
-  @Expose({ name: 'duration_minutes' })
+  @Expose()
   durationMinutes: number;
 
-  @Expose({ name: 'distance_meters' })
+  @Expose()
   distanceMeters?: number | null;
 
-  @Expose({ name: 'start_station_name' })
+  @Expose()
   startStationName: string; // place_name
 
-  @Expose({ name: 'end_station_name' })
+  @Expose()
   endStationName?: string | null;
 }
