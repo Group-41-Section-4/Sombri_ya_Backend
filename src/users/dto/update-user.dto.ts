@@ -12,4 +12,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   biometric_enabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  profileImageUrl?: string;
 }

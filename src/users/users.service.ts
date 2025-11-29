@@ -108,6 +108,15 @@ export class UsersService {
     });
   }
 
+  async updateProfileImage(userId: string, profileImageUrl: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    user.profileImageUrl = profileImageUrl;
+    return this.userRepository.save(user);
+  }
+
   /** Verifica que el usuario no tenga rentals activos */
   private async ensureNoActiveRentals(userId: string): Promise<void> {
     const ACTIVE_STATUSES: RentalStatus[] = [

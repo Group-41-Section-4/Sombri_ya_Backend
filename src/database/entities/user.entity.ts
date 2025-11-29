@@ -47,6 +47,9 @@ export class User {
   @OneToMany(() => Location, (location) => location.user)
   locations: Location[];
 
+  @Column({ type: 'text', nullable: true })
+  profileImageUrl: string | null;
+
   @Column({
     type: 'decimal',
     precision: 10,

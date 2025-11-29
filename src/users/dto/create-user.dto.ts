@@ -12,4 +12,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean()
   biometric_enabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  profileImageUrl?: string;
 }
