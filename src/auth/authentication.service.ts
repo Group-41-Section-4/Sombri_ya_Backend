@@ -1,10 +1,15 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../database/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as crypto from 'crypto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +17,36 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly mailer: MailerService,
+    private readonly jwtService: JwtService,
   ) {}
+
+  async validateUser(email: string, password: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { email } });
+
+    if (!user || !user.password) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    return user;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async login(user: User) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
 
   async findOrCreateUser(email: string, name: string) {
     let user = await this.userRepo.findOne({ where: { email } });
