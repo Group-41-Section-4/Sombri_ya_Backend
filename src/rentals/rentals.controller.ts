@@ -96,7 +96,7 @@ export class RentalsController {
       updatedUmbrellas: result.updatedUmbrellas,
     };
   }
-  @Get('export')
+  @Get('export_rent')
   async export(@Query('id') id?: string): Promise<RentalExportRowDto[]> {
     return this.rentalsService.export(id);
   }
