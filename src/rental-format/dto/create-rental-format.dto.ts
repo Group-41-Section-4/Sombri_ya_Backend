@@ -1,11 +1,18 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsString, MaxLength, IsUUID } from 'class-validator';
+import {
+  IsInt,
+  IsString,
+  MaxLength,
+  IsUUID,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateRentalFormatDto {
   @Type(() => Number)
   @IsInt()
   someInt: number;
 
+  @IsOptional()
   @IsString()
   @MaxLength(250)
   description: string;
